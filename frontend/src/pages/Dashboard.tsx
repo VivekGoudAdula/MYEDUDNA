@@ -21,6 +21,21 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchRoadmap = async () => {
       if (!user) return;
+      
+      try {
+        // 1. Try fetching from FastAPI SQLite backend first
+        const res = await fetch(`http://127.0.0.1:8000/roadmap/${user.uid}`);
+        if (res.ok) {
+          const data = await res.json();
+          setRoadmap(data);
+          setLoading(false);
+          return;
+        }
+      } catch (e) {
+        console.log("FastAPI roadmap fetch failed, trying Firebase...");
+      }
+
+      // 2. Fallback to Firebase Firestore
       const docSnap = await getDoc(doc(db, 'roadmaps', user.uid));
       if (docSnap.exists()) {
         setRoadmap(docSnap.data());
@@ -48,11 +63,11 @@ const Dashboard = () => {
 
   if (loading) return (
     <div className="p-8 space-y-8 max-w-7xl mx-auto">
-      <div className="h-32 w-full bg-slate-900 animate-pulse rounded-2xl"></div>
+      <div className="h-32 w-full bg-slate-100 animate-pulse rounded-[2rem]"></div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="h-64 bg-slate-900 animate-pulse rounded-2xl"></div>
-        <div className="h-64 bg-slate-900 animate-pulse rounded-2xl"></div>
-        <div className="h-64 bg-slate-900 animate-pulse rounded-2xl"></div>
+        <div className="h-64 bg-slate-100 animate-pulse rounded-[2rem]"></div>
+        <div className="h-64 bg-slate-100 animate-pulse rounded-[2rem]"></div>
+        <div className="h-64 bg-slate-100 animate-pulse rounded-[2rem]"></div>
       </div>
     </div>
   );
