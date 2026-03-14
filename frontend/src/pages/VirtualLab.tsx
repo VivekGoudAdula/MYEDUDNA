@@ -1,193 +1,289 @@
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Beaker, Play, Info, Layers, Settings, RefreshCw } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FlaskConical, Beaker, Zap, Ruler, Flame, TestTube, Thermometer, Magnet, Sliders, Info } from 'lucide-react';
+import LabLayout from '../components/VirtualLab/LabLayout';
+
+// Experiment Components
+import TitrationLab from '../components/VirtualLab/experiments/AcidBaseTitration/TitrationLab';
+import ElectrolysisLab from '../components/VirtualLab/experiments/Electrolysis/ElectrolysisLab';
+import OhmsLawLab from '../components/VirtualLab/experiments/OhmsLaw/OhmsLawLab';
+import FreeFallLab from '../components/VirtualLab/experiments/FreeFall/FreeFallLab';
+
+const EXPERIMENTS = [
+  {
+    id: 'titration',
+    name: 'Acid Base Titration',
+    category: 'Chemistry',
+    icon: <FlaskConical size={18} />,
+    apparatus: [
+      { id: 'burette', name: 'Burette', icon: <TestTube size={20} /> },
+      { id: 'flask', name: 'Conical Flask', icon: <FlaskConical size={20} /> },
+      { id: 'indicator', name: 'Indicator', icon: <Flame size={20} /> },
+      { id: 'phmeter', name: 'pH Meter', icon: <Thermometer size={20} /> }
+    ],
+    graphConfig: {
+      xAxis: 'volume',
+      yAxis: 'ph',
+      xLabel: 'NaOH Added',
+      yLabel: 'pH',
+      color: '#ec4899'
+    }
+  },
+  {
+    id: 'electrolysis',
+    name: 'Electrolysis of Water',
+    category: 'Chemistry',
+    icon: <Beaker size={18} />,
+    apparatus: [
+      { id: 'powersupply', name: 'DC Supply', icon: <Zap size={20} /> },
+      { id: 'electrodes', name: 'Electrodes', icon: <Magnet size={20} /> },
+      { id: 'tubes', name: 'Collection Tubes', icon: <TestTube size={20} /> }
+    ],
+    graphConfig: {
+      xAxis: 'time',
+      yAxis: 'hydrogen',
+      xLabel: 'Time (s)',
+      yLabel: 'Vol H₂',
+      color: '#3b82f6'
+    }
+  },
+  {
+    id: 'ohmslaw',
+    name: "Ohm's Law Verification",
+    category: 'Physics',
+    icon: <Zap size={18} />,
+    apparatus: [
+      { id: 'battery', name: 'Battery', icon: <Zap size={20} /> },
+      { id: 'resistor', name: 'Resistor', icon: <TestTube size={20} /> },
+      { id: 'multimeter', name: 'Multimeter', icon: <Thermometer size={20} /> }
+    ],
+    graphConfig: {
+      xAxis: 'voltage',
+      yAxis: 'current',
+      xLabel: 'Voltage (V)',
+      yLabel: 'Current (I)',
+      color: '#fbbf24'
+    }
+  },
+  {
+    id: 'freefall',
+    name: 'Free Fall Motion',
+    category: 'Physics',
+    icon: <Ruler size={18} />,
+    apparatus: [
+      { id: 'tower', name: 'Drop Tower', icon: <Ruler size={20} /> },
+      { id: 'sensor', name: 'Timer Sensor', icon: <Zap size={20} /> }
+    ],
+    graphConfig: {
+      xAxis: 'time',
+      yAxis: 'velocity',
+      xLabel: 'Time (s)',
+      yLabel: 'Velocity',
+      color: '#6366f1'
+    }
+  }
+];
 
 const VirtualLab = () => {
-  const [labs, setLabs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeLab, setActiveLab] = useState<any>(null);
-  const [simData, setSimData] = useState<any[]>([]);
-  const [isSimulating, setIsSimulating] = useState(false);
+  const [activeExpId, setActiveExpId] = useState(EXPERIMENTS[0].id);
+  const [resetKey, setResetKey] = useState(0);
+  const [graphData, setGraphData] = useState<any[]>([]);
+  const [currentReadings, setCurrentReadings] = useState<any>({});
+  
+  // Variable States
+  const [speed, setSpeed] = useState(0.4);
+  const [normality, setNormality] = useState(0.9);
+  const [resistance, setResistance] = useState(50);
+  const [dropHeight, setDropHeight] = useState(20);
 
-  useEffect(() => {
-    fetch('/api/labs')
-      .then(res => res.json())
-      .then(data => {
-        setLabs(data);
-        setActiveLab(data[0]);
-        setLoading(false);
-      });
-  }, []);
+  const activeExp = useMemo(() => 
+    EXPERIMENTS.find(e => e.id === activeExpId) || EXPERIMENTS[0]
+  , [activeExpId]);
 
-  const runSimulation = () => {
-    setIsSimulating(true);
-    setSimData([]);
-    let count = 0;
-    const interval = setInterval(() => {
-      setSimData(prev => [...prev, {
-        time: count,
-        value: Math.sin(count * 0.5) * 10 + (Math.random() * 2),
-        velocity: Math.cos(count * 0.5) * 8
-      }]);
-      count++;
-      if (count > 20) {
-        clearInterval(interval);
-        setIsSimulating(false);
-      }
-    }, 200);
+  const handleReset = () => {
+    setResetKey(prev => prev + 1);
+    setGraphData([]);
+    setCurrentReadings({});
   };
 
-  if (loading) return <div className="p-8 text-center text-slate-600">Loading Virtual Labs...</div>;
+  const handleReadingUpdate = (readings: any) => {
+    setCurrentReadings(readings);
+    
+    if (activeExpId === 'titration' && readings.volume !== undefined) {
+      setGraphData(prev => {
+         const last = prev[prev.length - 1];
+         if (last && last.volume === readings.volume) return prev;
+         return [...prev.slice(-30), { volume: readings.volume, ph: readings.ph }];
+      });
+    } else if (activeExpId === 'electrolysis' && readings.hydrogen !== undefined) {
+      setGraphData(prev => [...prev.slice(-30), { time: prev.length, hydrogen: readings.hydrogen }]);
+    } else if (activeExpId === 'ohmslaw' && readings.voltage !== undefined) {
+      setGraphData(prev => [...prev.slice(-30), { voltage: readings.voltage, current: readings.current }]);
+    } else if (activeExpId === 'freefall' && readings.time !== undefined && readings.time > 0) {
+      setGraphData(prev => [...prev.slice(-50), { time: readings.time, velocity: readings.velocity }]);
+    }
+  };
+
+  const renderExperiment = () => {
+    const key = `${activeExpId}-${resetKey}`;
+    switch (activeExpId) {
+      case 'titration':
+        return <TitrationLab key={key} onReadingUpdate={handleReadingUpdate} speed={speed} />;
+      case 'electrolysis':
+        return <ElectrolysisLab key={key} onReadingUpdate={handleReadingUpdate} />;
+      case 'ohmslaw':
+        return <OhmsLawLab key={key} onReadingUpdate={handleReadingUpdate} initialResistance={resistance} />;
+      case 'freefall':
+        return <FreeFallLab key={key} onReadingUpdate={handleReadingUpdate} initialHeight={dropHeight} />;
+      default:
+        return null;
+    }
+  };
+
+  const renderVariableControls = () => {
+    return (
+      <div className="space-y-8 animate-in fade-in slide-in-from-left duration-500">
+        {activeExpId === 'titration' && (
+          <>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center text-[10px] uppercase font-bold tracking-widest text-slate-500">
+                 <span>Speed of titrant</span>
+                 <span className="text-white bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-500/30">{speed}</span>
+              </div>
+              <input 
+                type="range" min="0.1" max="1.0" step="0.1" 
+                value={speed} onChange={(e) => setSpeed(Number(e.target.value))}
+                className="w-full accent-indigo-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+              />
+            </div>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center text-[10px] uppercase font-bold tracking-widest text-slate-500">
+                 <span>Normality of titrate</span>
+                 <span className="text-white bg-pink-500/20 px-2 py-0.5 rounded border border-pink-500/30">{normality} N</span>
+              </div>
+              <input 
+                type="range" min="0.1" max="2.0" step="0.1" 
+                value={normality} onChange={(e) => setNormality(Number(e.target.value))}
+                className="w-full accent-pink-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+              />
+            </div>
+          </>
+        )}
+        {activeExpId === 'electrolysis' && (
+           <div className="space-y-4">
+              <div className="flex justify-between items-center text-[10px] uppercase font-bold tracking-widest text-slate-500">
+                 <span>Input Current</span>
+                 <span className="text-white bg-blue-500/20 px-2 py-0.5 rounded border border-blue-500/30">{speed * 2} A</span>
+              </div>
+              <input 
+                type="range" min="0.5" max="5.0" step="0.5" 
+                value={speed * 2} onChange={(e) => setSpeed(Number(e.target.value) / 2)}
+                className="w-full accent-blue-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+              />
+           </div>
+        )}
+        {activeExpId === 'ohmslaw' && (
+           <div className="space-y-4">
+              <div className="flex justify-between items-center text-[10px] uppercase font-bold tracking-widest text-slate-500">
+                 <span>Resistance</span>
+                 <span className="text-white bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30">{resistance} Ω</span>
+              </div>
+              <input 
+                type="range" min="10" max="500" step="10" 
+                value={resistance} onChange={(e) => setResistance(Number(e.target.value))}
+                className="w-full accent-amber-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+              />
+           </div>
+        )}
+        {activeExpId === 'freefall' && (
+           <div className="space-y-4">
+              <div className="flex justify-between items-center text-[10px] uppercase font-bold tracking-widest text-slate-500">
+                 <span>Height selector</span>
+                 <span className="text-white bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30">{dropHeight} m</span>
+              </div>
+              <input 
+                type="range" min="10" max="100" step="10" 
+                value={dropHeight} onChange={(e) => setDropHeight(Number(e.target.value))}
+                className="w-full accent-emerald-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+              />
+           </div>
+        )}
+        
+        <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl">
+           <div className="flex items-center space-x-2 mb-2">
+              <Info size={14} className="text-indigo-400" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-300">Lab Assistant</span>
+           </div>
+           <p className="text-[10px] text-slate-400 leading-relaxed italic">
+              Adjust variables on the fly to see how they impact real-time data observations.
+           </p>
+        </div>
+      </div>
+    );
+  };
+
+  const renderReadings = () => {
+    return (
+      <div className="space-y-3 mt-4">
+        {Object.entries(currentReadings).map(([key, val]: [string, any]) => (
+          <motion.div 
+              key={key} 
+              initial={{ opacity: 0, y: 5 }} 
+              animate={{ opacity: 1, y: 0 }}
+              className="flex justify-between items-center p-3 bg-white/5 border border-white/5 rounded-xl group hover:bg-white/10 transition-all"
+          >
+            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest group-hover:text-slate-300 transition-colors">{key.replace('_', ' ')}</span>
+            <span className="text-xs font-mono font-bold text-indigo-400 tracking-wider">
+               {val}
+            </span>
+          </motion.div>
+        ))}
+      </div>
+    );
+  };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2 text-slate-900">Virtual <span className="gradient-text">STEM Labs</span></h1>
-        <p className="text-slate-600">Interactive simulations to master complex concepts through experimentation.</p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Lab Sidebar */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest px-2">Available Simulations</h3>
-          {labs.map((lab) => (
+    <div className="fixed inset-0 bg-slate-950 z-[100] flex flex-col overflow-hidden">
+      {/* Immersive Experiment Switcher Overlay (Top Central Pill) */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[110] flex items-center space-x-1 bg-slate-900/50 backdrop-blur-md p-1 border border-white/10 rounded-full shadow-2xl">
+         {EXPERIMENTS.map((exp) => (
             <button
-              key={lab.id}
-              onClick={() => setActiveLab(lab)}
-              className={`w-full text-left p-4 rounded-2xl border transition-all ${
-                activeLab?.id === lab.id 
-                  ? 'bg-indigo-50 border-indigo-500 shadow-sm' 
-                  : 'bg-white border-slate-200 hover:border-slate-300'
-              }`}
+               key={exp.id}
+               onClick={() => { setActiveExpId(exp.id); handleReset(); }}
+               className={`flex items-center space-x-2 px-4 py-1.5 rounded-full transition-all text-xs font-bold ${
+                 activeExpId === exp.id 
+                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' 
+                   : 'text-slate-500 hover:text-white hover:bg-white/5'
+               }`}
             >
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden">
-                  <img src={lab.thumbnail} alt="" className="w-full h-full object-cover opacity-80" referrerPolicy="no-referrer" />
-                </div>
-                <div>
-                  <h4 className={`font-bold text-sm ${activeLab?.id === lab.id ? 'text-indigo-700' : 'text-slate-900'}`}>{lab.name}</h4>
-                  <p className="text-[10px] text-slate-500">{lab.category}</p>
-                </div>
-              </div>
+               {exp.icon}
+               <span className="hidden sm:inline">{exp.name}</span>
             </button>
-          ))}
-        </div>
-
-        {/* Lab Viewport */}
-        <div className="lg:col-span-3 space-y-8">
-          <div className="glass-card p-0 overflow-hidden">
-            <div className="bg-slate-50 border-b border-slate-200 p-4 flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2 text-indigo-600">
-                  <Beaker size={18} />
-                  <span className="text-sm font-bold">{activeLab?.name}</span>
-                </div>
-                <div className="h-4 w-[1px] bg-slate-200"></div>
-                <span className="text-xs text-slate-500">Status: <span className="text-emerald-600 font-bold">Ready</span></span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button className="p-2 hover:bg-slate-200 rounded-lg text-slate-400 transition-colors"><Settings size={18} /></button>
-                <button className="p-2 hover:bg-slate-200 rounded-lg text-slate-400 transition-colors"><Info size={18} /></button>
-              </div>
-            </div>
-            
-            <div className="aspect-video bg-slate-900 relative flex items-center justify-center">
-              {/* Simulation Visualizer */}
-              <div className="absolute inset-0 opacity-10 pointer-events-none">
-                <div className="w-full h-full" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-              </div>
-              
-              <div className="relative z-10 text-center">
-                {isSimulating ? (
-                  <div className="flex flex-col items-center">
-                    <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                    <p className="text-indigo-400 font-mono text-sm">CALCULATING VECTORS...</p>
-                  </div>
-                ) : simData.length > 0 ? (
-                  <div className="w-[600px] h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={simData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                        <XAxis dataKey="time" stroke="#94a3b8" fontSize={10} />
-                        <YAxis stroke="#94a3b8" fontSize={10} />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-                          itemStyle={{ color: '#6366f1' }}
-                        />
-                        <Line type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={2} dot={false} />
-                        <Line type="monotone" dataKey="velocity" stroke="#ec4899" strokeWidth={2} dot={false} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center">
-                    <Beaker size={64} className="text-slate-700 mb-4" />
-                    <p className="text-slate-400 text-sm mb-6">Configure parameters and start simulation</p>
-                    <button 
-                      onClick={runSimulation}
-                      className="btn-primary flex items-center space-x-2"
-                    >
-                      <Play size={18} />
-                      <span>Run Experiment</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Lab Controls Overlay */}
-              <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between">
-                <div className="flex space-x-2">
-                  <div className="bg-white/10 backdrop-blur-md border border-white/10 px-3 py-2 rounded-lg text-[10px] font-mono text-white">
-                    <span className="text-slate-300">GRAVITY:</span> 9.81m/s²
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-md border border-white/10 px-3 py-2 rounded-lg text-[10px] font-mono text-white">
-                    <span className="text-slate-300">ANGLE:</span> 45°
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setSimData([])}
-                  className="bg-white/10 backdrop-blur-md border border-white/10 p-2 rounded-lg text-slate-300 hover:text-white transition-colors"
-                >
-                  <RefreshCw size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="glass-card">
-              <h3 className="font-bold mb-4 flex items-center space-x-2 text-slate-900">
-                <Layers size={18} className="text-indigo-600" />
-                <span>Experiment Description</span>
-              </h3>
-              <p className="text-sm text-slate-600 leading-relaxed">
-                {activeLab?.description} This simulation allows you to explore the fundamental principles of {activeLab?.category} through real-time data visualization and parameter control.
-              </p>
-            </div>
-            <div className="glass-card">
-              <h3 className="font-bold mb-4 flex items-center space-x-2 text-slate-900">
-                <Info size={18} className="text-purple-600" />
-                <span>Learning Objectives</span>
-              </h3>
-              <ul className="text-sm text-slate-600 space-y-2">
-                <li className="flex items-center space-x-2">
-                  <div className="w-1 h-1 bg-indigo-500 rounded-full"></div>
-                  <span>Understand vector decomposition</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <div className="w-1 h-1 bg-indigo-500 rounded-full"></div>
-                  <span>Analyze the impact of initial velocity</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <div className="w-1 h-1 bg-indigo-500 rounded-full"></div>
-                  <span>Calculate maximum height and range</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
+         ))}
       </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+           key={activeExpId}
+           initial={{ opacity: 0 }}
+           animate={{ opacity: 1 }}
+           exit={{ opacity: 0 }}
+           transition={{ duration: 0.5 }}
+           className="w-full h-full"
+        >
+          <LabLayout
+            title={activeExp.name}
+            category={activeExp.category}
+            experimentComponent={renderExperiment()}
+            apparatus={activeExp.apparatus}
+            graphData={graphData}
+            graphConfig={activeExp.graphConfig}
+            variableControls={renderVariableControls()}
+            numericalReadings={renderReadings()}
+            onReset={handleReset}
+          />
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 };

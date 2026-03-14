@@ -85,36 +85,23 @@ const Landing = () => {
   const dnaScale     = useTransform(scrollYProgress, [0, 0.2], [1, 0.85]);
 
   return (
-    <div className="bg-white dark:bg-slate-950 text-slate-900 dark:text-white overflow-x-hidden min-h-screen transition-colors duration-500">
+    <div className="relative overflow-hidden">
+      {/* Background Blobs */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/20 blur-[120px] rounded-full animate-pulse"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-600/20 blur-[120px] rounded-full animate-pulse delay-700"></div>
+      </div>
 
-      {/* ── Navbar ─────────────────────────────────────────────────────────── */}
-      <nav className={cn(
-        'fixed top-0 inset-x-0 z-[100] transition-all duration-400',
-        isScrolled
-          ? 'py-3 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/70 dark:border-white/8 shadow-sm'
-          : 'py-5 bg-transparent'
-      )}>
-        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between gap-8">
-
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center shadow-md group-hover:shadow-indigo-500/40 transition-shadow">
-              <span className="text-white font-bold text-sm leading-none">M</span>
-            </div>
-            <span
-              className="text-[15px] font-semibold tracking-tight text-slate-900 dark:text-white"
-              style={{ fontFamily: '"Inter", sans-serif' }}
-            >
-              MyEduDNA
-            </span>
-          </Link>
-
-          {/* Centre links */}
-          <div className="hidden lg:flex items-center gap-7">
-            <NavLink href="#product">Features</NavLink>
-            <NavLink href="#labs">Virtual Labs</NavLink>
-            <NavLink href="#mentorship">Mentorship</NavLink>
-            <NavLink href="#pricing">Pricing</NavLink>
+      {/* Hero Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-32 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full glass border border-slate-200 text-xs font-medium text-emerald-600 mb-6">
+            <Sparkles size={14} />
+            <span>Powered by Groq & LLaMA 3.3</span>
           </div>
 
           {/* Right actions */}
@@ -166,53 +153,25 @@ const Landing = () => {
           style={{ opacity: heroOpacity, y: heroY }}
           className="relative z-10 max-w-6xl mx-auto px-6 w-full grid lg:grid-cols-2 gap-16 items-center py-24"
         >
-          {/* Left copy */}
-          <div className="space-y-8 max-w-xl">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            >
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400 text-xs font-medium mb-8">
-                <Sparkles size={12} />
-                <span>AI-powered personalised learning</span>
+          <div className="glass-card max-w-4xl mx-auto aspect-video flex items-center justify-center overflow-hidden group bg-gradient-to-br from-indigo-50 via-white to-purple-50 relative border-slate-200">
+            <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent z-10"></div>
+            
+            {/* AI visualization elements replacing dummy image */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-10">
+              <div className="w-[400px] h-[400px] border border-indigo-500/20 rounded-full flex items-center justify-center animate-[spin_60s_linear_infinite]">
+                 <div className="w-[300px] h-[300px] border border-indigo-500/30 rounded-full flex items-center justify-center animate-[spin_40s_linear_infinite_reverse]">
+                    <div className="w-[200px] h-[200px] border border-indigo-500/40 rounded-full animate-ping"></div>
+                 </div>
               </div>
-
-              <h1
-                className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight text-slate-900 dark:text-white mb-6"
-                style={{ fontFamily: '"Playfair Display", "Times New Roman", Georgia, serif' }}
-              >
-                Your Education,{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-cyan-500 dark:from-indigo-400 dark:to-cyan-400">
-                  Unique As Your DNA
-                </span>
-              </h1>
-
-              <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 leading-relaxed mb-10">
-                MyEduDNA designs personalised learning journeys using AI — built around
-                your career goals, learning style, and natural curiosity.
-              </p>
-
-              <div className="flex flex-wrap items-center gap-4">
-                <Link
-                  to="/auth"
-                  className="group inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40"
-                >
-                  Start Learning
-                  <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
-                </Link>
-                <button className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-semibold text-slate-700 dark:text-slate-300 transition-all">
-                  <Play size={15} className="text-indigo-500 fill-indigo-500" />
-                  Watch Demo
-                </button>
+            </div>
+            <div className="absolute bottom-8 left-8 text-left z-20">
+              <div className="flex items-center space-x-2 mb-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></div>
+                <span className="text-xs font-bold text-emerald-600">AI SYSTEM ACTIVE</span>
               </div>
-
-              {/* Social proof micro-line */}
-              <p className="text-xs text-slate-400 dark:text-slate-600 mt-8">
-                Trusted by <span className="font-semibold text-slate-600 dark:text-slate-400">2,400+ learners</span> across 40 countries
-              </p>
-            </motion.div>
+              <h3 className="text-2xl font-black text-slate-900">Personalized Roadmap #4829</h3>
+              <p className="text-sm font-bold text-slate-500">Quantum Computing Specialist Path</p>
+            </div>
           </div>
 
           {/* Right — floating UI cards (replaces duplicate DNA, sits over the canvas) */}

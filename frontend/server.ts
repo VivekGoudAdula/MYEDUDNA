@@ -1,7 +1,7 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
-import { GoogleGenAI } from "@google/genai";
+import Groq from "groq-sdk";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -16,12 +16,12 @@ async function startServer() {
   app.post("/api/generate-roadmap", async (req, res) => {
     const { careerGoal, learningStyle, skillLevel } = req.body;
     
-    if (!process.env.GEMINI_API_KEY) {
-      return res.status(500).json({ error: "Gemini API key not configured" });
+    if (!process.env.GROQ_API_KEY) {
+      return res.status(500).json({ error: "Groq API key not configured" });
     }
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
       
       const prompt = `Generate a personalized learning roadmap for a ${skillLevel} level student wanting to become a ${careerGoal}. 
       The learning style is ${learningStyle}. 
@@ -33,13 +33,22 @@ async function startServer() {
       - status (string, set first to 'in-progress', others to 'locked')
       - progress (number, 0)`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        config: { responseMimeType: "application/json" }
+      const response = await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
       });
 
-      const roadmap = JSON.parse(response.text);
+      const textOutput = response.choices[0]?.message?.content || "[]";
+      // Ensure the returned structure from JSON object wraps arrays correctly or parse it if our prompt just requested array
+      let roadmap;
+      try {
+        const parsed = JSON.parse(textOutput);
+        roadmap = Array.isArray(parsed) ? parsed : (parsed.modules || parsed);
+      } catch (e) {
+        roadmap = [];
+      }
+      
       res.json(roadmap);
     } catch (error) {
       console.error("AI Generation Error:", error);
@@ -47,21 +56,13 @@ async function startServer() {
     }
   });
 
-  // Mock endpoints for Labs and Mentors (could be moved to Firestore later)
+  // Mock endpoints for Labs and Mentors (empty for now until real data is added)
   app.get("/api/labs", (req, res) => {
-    res.json([
-      { id: "1", name: "Physics Projectile Simulator", category: "Physics", description: "Simulate projectile motion with varying gravity and angles.", thumbnail: "https://picsum.photos/seed/physics/400/300" },
-      { id: "2", name: "Chemistry Titration Lab", category: "Chemistry", description: "Perform virtual acid-base titrations with precision.", thumbnail: "https://picsum.photos/seed/chemistry/400/300" },
-      { id: "3", name: "AI Model Training Demo", category: "Computer Science", description: "Visualize neural network training in real-time.", thumbnail: "https://picsum.photos/seed/ai/400/300" }
-    ]);
+    res.json([]);
   });
 
   app.get("/api/mentors", (req, res) => {
-    res.json([
-      { id: "1", name: "Dr. Sarah Chen", expertise: "Quantum Computing", availability: "Mon, Wed 4-6 PM", avatar: "https://i.pravatar.cc/150?u=sarah" },
-      { id: "2", name: "James Wilson", expertise: "Full Stack Development", availability: "Tue, Thu 10-12 AM", avatar: "https://i.pravatar.cc/150?u=james" },
-      { id: "3", name: "Elena Rodriguez", expertise: "Data Science", availability: "Fri 2-5 PM", avatar: "https://i.pravatar.cc/150?u=elena" }
-    ]);
+    res.json([]);
   });
 
   // Vite middleware for development

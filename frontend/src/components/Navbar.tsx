@@ -24,15 +24,16 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-slate-200">
+    <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-slate-100 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">D</span>
+        <div className="flex items-center justify-between h-20">
+          <Link to="/" className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 rotate-3 group-hover:rotate-0 transition-transform">
+              <span className="text-white font-black text-2xl">D</span>
             </div>
-            <span className="text-xl font-bold tracking-tight gradient-text">MyEduDNA</span>
+            <span className="text-2xl font-black tracking-tighter gradient-text">MyEduDNA</span>
           </Link>
+
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center space-x-8">
