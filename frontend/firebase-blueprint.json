@@ -1,0 +1,85 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and learning preferences",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "careerGoal": { "type": "string" },
+        "learningStyle": { "type": "string", "enum": ["Visual", "Text", "Project Based"] },
+        "skillLevel": { "type": "string", "enum": ["Beginner", "Intermediate", "Advanced"] },
+        "onboarded": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Roadmap": {
+      "title": "Roadmap",
+      "description": "AI generated learning roadmap for a user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "careerGoal": { "type": "string" },
+        "modules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "description": { "type": "string" },
+              "videoUrl": { "type": "string" },
+              "status": { "type": "string", "enum": ["locked", "in-progress", "completed"] },
+              "progress": { "type": "number" }
+            }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Lab": {
+      "title": "Lab",
+      "description": "Virtual STEM lab simulation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "thumbnail": { "type": "string" }
+      }
+    },
+    "Mentor": {
+      "title": "Mentor",
+      "description": "Global mentor information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "expertise": { "type": "string" },
+        "availability": { "type": "string" },
+        "avatar": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents"
+    },
+    "/roadmaps/{roadmapId}": {
+      "schema": "Roadmap",
+      "description": "User learning roadmaps"
+    },
+    "/labs/{labId}": {
+      "schema": "Lab",
+      "description": "Available virtual labs"
+    },
+    "/mentors/{mentorId}": {
+      "schema": "Mentor",
+      "description": "Available mentors"
+    }
+  }
+}
