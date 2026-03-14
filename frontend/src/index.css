@@ -1,14 +1,26 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@utility bg-radial-gradient {
+  background: radial-gradient(circle at center, var(--tw-gradient-from) 0%, var(--tw-gradient-to) 100%);
+}
 
 @theme {
   --color-primary: #6366f1;
   --color-secondary: #a855f7;
-  --color-accent: #ec4899;
+  --color-accent: #22d3ee;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", "Times New Roman", Georgia, serif;
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-white text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-50 transition-colors duration-500;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+h1, h2, h3 {
+  font-family: "Playfair Display", "Times New Roman", Georgia, serif;
 }
 
 @utility glass {
@@ -40,4 +52,54 @@ body {
 }
 ::-webkit-scrollbar-thumb {
   @apply bg-slate-300 rounded-full hover:bg-slate-400;
+}
+
+@utility perspective-2000 {
+  perspective: 2000px;
+}
+
+@utility perspective-1000 {
+  perspective: 1000px;
+}
+
+@utility font-serif-heading {
+  font-family: "Playfair Display", "Times New Roman", Georgia, serif;
+}
+
+@utility backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+@utility preserve-3d {
+  transform-style: preserve-3d;
+}
+
+@utility rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+@utility rotate-y-0 {
+  transform: rotateY(0deg);
+}
+
+@utility translate-z-1 {
+  transform: translateZ(1px);
+}
+
+@utility translate-z--1 {
+  transform: translateZ(-1px);
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+html {
+  scroll-behavior: smooth;
 }

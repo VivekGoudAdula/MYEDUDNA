@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
 import Navbar from './components/Navbar';
 import Landing from './pages/Landing';
@@ -28,6 +28,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppContent = () => {
   const { user, userData, loading } = useAuth();
+  const location = useLocation();
   
   if (loading) {
     return (
@@ -46,8 +47,8 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-grow pt-16">
+      {location.pathname !== '/' && <Navbar />}
+      <main className={`flex-grow ${location.pathname !== '/' ? 'pt-16' : ''}`}>
         <AnimatePresence mode="wait">
           <Routes>
             <Route path="/" element={redirectPath ? <Navigate to={redirectPath} /> : <Landing />} />
