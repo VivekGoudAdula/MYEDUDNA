@@ -120,8 +120,8 @@ const Landing = () => {
               Get Started
             </Link>
           </div>
-        </div>
-      </nav>
+        </motion.div>
+      </section>
 
       {/* ── Hero ───────────────────────────────────────────────────────────── */}
       <section className="relative min-h-screen flex items-center overflow-hidden bg-white dark:bg-slate-950 pt-20">
