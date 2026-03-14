@@ -46,7 +46,10 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
+      <Routes>
+        <Route path="/onboarding" element={null} />
+        <Route path="*" element={<Navbar />} />
+      </Routes>
       <main className="flex-grow pt-16">
         <AnimatePresence mode="wait">
           <Routes>
@@ -84,9 +87,14 @@ const AppContent = () => {
           </Routes>
         </AnimatePresence>
       </main>
-      <footer className="py-8 border-t border-slate-200 text-center text-slate-500 text-sm">
-        <p>© 2026 MyEduDNA. Built with AI for the future of learning.</p>
-      </footer>
+      <Routes>
+        <Route path="/onboarding" element={null} />
+        <Route path="*" element={
+          <footer className="py-8 border-t border-slate-200 text-center text-slate-500 text-sm">
+            <p>© 2026 MyEduDNA. Built with AI for the future of learning.</p>
+          </footer>
+        } />
+      </Routes>
     </div>
   );
 };
