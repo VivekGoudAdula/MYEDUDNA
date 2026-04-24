@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-brand-pink: #ff2d55;
+  --color-brand-red: #ff4d6d;
+  --color-brand-purple: #a855f7;
+  
+  --color-bg-light: #f8fafc;
+  --color-bg-card: #ffffff;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #64748b;
+  --color-border-light: #e5e7eb;
+}
+
+@layer base {
+  body {
+    @apply bg-bg-light text-text-primary font-sans antialiased selection:bg-brand-pink/20;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/80 backdrop-blur-xl border border-border-light shadow-sm;
+  }
+  
+  .glass-hover {
+    @apply transition-all duration-300 hover:bg-white hover:border-gray-300 hover:shadow-lg;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-pink via-brand-red to-brand-purple;
+  }
+
+  .bg-gradient-premium {
+    @apply bg-gradient-to-br from-brand-pink via-brand-red to-brand-purple;
+  }
+}
