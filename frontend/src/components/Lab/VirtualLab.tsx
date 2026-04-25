@@ -24,6 +24,18 @@ import { cn } from '@/src/lib/utils';
 import { Heading, Text } from '../DesignSystem/Typography';
 import { Button } from '../DesignSystem/Button';
 import { Card } from '../DesignSystem/Card';
+import toast from 'react-hot-toast';
+
+const labRealWorldLinks: Record<string, string> = {
+  'projectile': 'Used in ballistics, satellite launch trajectories, and sports science analysis.',
+  'pendulum': 'Found in timekeeping mechanisms, seismometers, and structural stability sensors.',
+  'titration': 'Crucial for pharmaceutical quality testing and environmental water analysis.',
+  'molecule': 'Used in drug discovery, materials science, and synthetic biology design.',
+  'circuits': 'The foundation of all modern electronics, consumer hardware, and power grids.',
+  'ohmslaw': 'Used in electrical safety systems, battery management, and industrial load testing.',
+  'sorting': 'Powers database indexing, search engines, and efficient data processing pipelines.',
+  'binary': 'The core logic of computer architecture, digital communication, and AI hardware.',
+};
 
 // Import Experiments
 import { ProjectileMotion } from './experiments/ProjectileMotion';
@@ -216,6 +228,21 @@ export const VirtualLab = () => {
   const handleCapture = React.useCallback((results: any) => {
     setCaptureHistory(prev => [...prev, { timestamp: new Date(), ...results }]);
     setSimStatus('completed');
+    
+    // Feature 3: Real-time adaptation toast
+    setTimeout(() => {
+      toast.success("Roadmap Adjusted: We've focused your path on practical fundamentals based on this lab performance.", {
+        duration: 5000,
+        icon: '🧠',
+        style: {
+          borderRadius: '16px',
+          background: '#8B5CF6',
+          color: '#fff',
+          fontWeight: 'bold',
+          fontSize: '12px'
+        }
+      });
+    }, 1000);
   }, []);
 
   const renderSimulation = () => {
@@ -494,6 +521,32 @@ export const VirtualLab = () => {
                             </p>
                          </div>
                       </Card>
+
+                      {simStatus === 'completed' && (
+                        <motion.div 
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="p-6 md:p-8 bg-emerald-50 border-emerald-100 space-y-4 md:space-y-5 rounded-2xl md:rounded-3xl shadow-lg border relative overflow-hidden group"
+                        >
+                          <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:rotate-12 transition-transform">
+                             <Sparkles className="w-12 h-12 text-emerald-600" />
+                          </div>
+                          <div className="flex items-center gap-3">
+                             <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center">
+                                <Zap className="w-4 h-4 fill-current" />
+                             </div>
+                             <Heading as="h4" className="text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-emerald-900 font-bold">Real-World Application</Heading>
+                          </div>
+                          <Text className="text-[11px] md:text-[13px] text-emerald-800 font-bold leading-relaxed">
+                             {labRealWorldLinks[activeExp.id] || "This concept is foundational to advanced engineering and scientific research."}
+                          </Text>
+                          <div className="pt-2">
+                             <div className="px-3 py-1 rounded-full bg-white/50 border border-emerald-200 text-[9px] font-black uppercase text-emerald-700 w-fit">
+                                Industry Relevance: High
+                             </div>
+                          </div>
+                        </motion.div>
+                      )}
                    </div>
                 </motion.div>
               )}

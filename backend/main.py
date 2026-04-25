@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -21,9 +22,15 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="MyEduDNA Backend", lifespan=lifespan)
+origins = [
+    "http://localhost:3000",
+    "http://localhost:5173", # Standard Vite port
+    os.getenv("FRONTEND_URL", "https://myedudna.vercel.app/"),
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

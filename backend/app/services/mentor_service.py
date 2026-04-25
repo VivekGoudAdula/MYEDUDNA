@@ -57,10 +57,22 @@ async def get_matched_mentors(user_email: str) -> list[dict]:
             score += 15
         elif "web" in domain or "frontend" in domain:
             score += 10
-        
+            
+        reason = []
+        if learning_style in mentor_tags:
+            reason.append("Matches your learning style")
+        if "ai" in domain or "ml" in domain:
+            reason.append("Aligned with your career interest")
+        elif score > 30:
+            reason.append("Strong domain match")
+            
+        if not reason:
+            reason.append("Broad match")
+            
         # Include all mentor fields for the details view
         mentor_data = {k: v for k, v in mentor.items() if k != "_id"}
         mentor_data["match_score"] = min(score, 100)
+        mentor_data["match_reason"] = " + ".join(reason)
         matched.append(mentor_data)
 
     # Sort by score
@@ -71,7 +83,7 @@ async def get_matched_mentors(user_email: str) -> list[dict]:
         # Return first 5 mentors as fallback if score is too low
         fallback = await db.mentors.find({}, {"_id": 0}).limit(5).to_list(5)
         # Give fallback mentors a default baseline score if they don't have one
-        return [{**m, "match_score": 15} for m in fallback]
+        return [{**m, "match_score": 15, "match_reason": "General Mentor"} for m in fallback]
 
     return matched
 

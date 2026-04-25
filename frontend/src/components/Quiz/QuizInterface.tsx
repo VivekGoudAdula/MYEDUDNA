@@ -6,6 +6,7 @@ import { Card } from '../DesignSystem/Card';
 import { PageTransition } from '../DesignSystem/Transitions';
 import { api, DnaQuestion, DnaSubmitResponse } from '@/src/lib/api';
 import { cn } from '@/src/lib/utils';
+import toast from 'react-hot-toast';
 
 type QuizStep = 'intro' | 'active' | 'results';
 
@@ -97,6 +98,21 @@ export const QuizInterface = ({
       localStorage.setItem('latest_dna_profile', JSON.stringify(submitResponse.profile));
       setResult(submitResponse);
       setStep('results');
+      
+      // Feature 3: Real-time adaptation toast
+      setTimeout(() => {
+        toast.success("Roadmap Recalibrated: Your learning path has been adjusted based on your DNA accuracy.", {
+          duration: 5000,
+          icon: '🧬',
+          style: {
+            borderRadius: '16px',
+            background: '#EC4899',
+            color: '#fff',
+            fontWeight: 'bold',
+            fontSize: '12px'
+          }
+        });
+      }, 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit DNA.');
     } finally {

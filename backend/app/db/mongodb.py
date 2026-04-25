@@ -15,7 +15,11 @@ def get_database() -> AsyncIOMotorDatabase:
 
 async def connect_to_mongo() -> None:
     global client, database
-    client = AsyncIOMotorClient(settings.mongodb_uri)
+    # Debug print to catch InvalidURI issues on deployment
+    uri = settings.mongodb_uri
+    masked_uri = uri.split('@')[-1] if '@' in uri else uri
+    print(f"Connecting to MongoDB with URI: ...{masked_uri}")
+    client = AsyncIOMotorClient(uri)
     database = client[settings.mongodb_db_name]
     await ensure_collections_and_indexes()
 

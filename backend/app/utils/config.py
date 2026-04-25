@@ -6,7 +6,7 @@ load_dotenv()
 
 
 class Settings(BaseModel):
-    mongodb_uri: str = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+    mongodb_uri: str = (os.getenv("MONGODB_URI") or "mongodb://localhost:27017").strip().replace('"', '').replace("'", "")
     mongodb_db_name: str = os.getenv("MONGODB_DB_NAME", "myedudna")
     jwt_secret_key: str = os.getenv("JWT_SECRET_KEY", "change-this-secret")
     jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")

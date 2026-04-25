@@ -244,12 +244,18 @@ export const MentorshipPage = ({ authToken }: MentorshipPageProps) => {
                        <Text className="text-sm text-text-secondary leading-relaxed line-clamp-2">
                           {mentor.experience ? `${mentor.experience} professional experience in ${mentor.domain}.` : `Specialized in neural educational growth and optimization within the ${mentor.domain} sector.`}
                        </Text>
-                       {mentor.match_score > 30 && (
-                         <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600 bg-emerald-50/50 px-2 py-1 rounded-lg w-fit">
-                            <ShieldCheck className="w-3 h-3" />
-                            {mentor.match_score > 60 ? "Highly compatible with your learning style" : "Matches your practical strengths"}
-                         </div>
-                       )}
+                       <div className="flex flex-wrap gap-2 pt-1">
+                          <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600 bg-emerald-50/50 px-2 py-1 rounded-lg w-fit border border-emerald-100">
+                             <ShieldCheck className="w-3 h-3" />
+                             {mentor.match_score > 60 ? "Highly compatible" : "Good compatibility"}
+                          </div>
+                          {mentor.match_reason && (
+                             <div className="flex items-center gap-2 text-[10px] font-bold text-brand-purple bg-brand-purple/5 px-2 py-1 rounded-lg w-fit border border-brand-purple/10">
+                                <Sparkles className="w-3 h-3" />
+                                {mentor.match_reason}
+                             </div>
+                          )}
+                       </div>
                     </div>
                   </div>
 

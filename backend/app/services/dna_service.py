@@ -144,3 +144,63 @@ async def store_dna_profile(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found for DNA profile storage.",
         )
+
+
+async def get_ai_coach_insight(accuracy: float, labs_completed: int, learning_style: str) -> dict:
+    if not settings.groq_api_key:
+        return {
+            "strength": "Consistent learning pace",
+            "weakness": "Needs more practical application",
+            "suggestion": "Try completing 2 more labs this week to reinforce concepts."
+        }
+
+    prompt = (
+        "Analyze this student:\n"
+        f"Accuracy: {accuracy}%\n"
+        f"Labs Completed: {labs_completed}\n"
+        f"Learning Style: {learning_style}\n\n"
+        "Return only JSON with exactly these keys:\n"
+        "- strength (string)\n"
+        "- weakness (string)\n"
+        "- suggestion (string)"
+    )
+
+    payload = {
+        "model": settings.groq_model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.2,
+    }
+    headers = {
+        "Authorization": f"Bearer {settings.groq_api_key}",
+        "Content-Type": "application/json",
+    }
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            json=payload,
+            headers=headers,
+        )
+
+    if response.status_code >= 400:
+        return {
+            "strength": "Consistent learning pace",
+            "weakness": "Needs more practical application",
+            "suggestion": "Try completing 2 more labs this week to reinforce concepts."
+        }
+
+    content = response.json()["choices"][0]["message"]["content"]
+    
+    # Clean up markdown code block if present
+    content = content.replace("```json", "").replace("```", "").strip()
+
+    try:
+        parsed = json.loads(content)
+        return parsed
+    except json.JSONDecodeError:
+        return {
+            "strength": "Consistent learning pace",
+            "weakness": "Needs more practical application",
+            "suggestion": "Try completing 2 more labs this week to reinforce concepts."
+        }
+

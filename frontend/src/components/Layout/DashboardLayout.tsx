@@ -119,7 +119,7 @@ export const DashboardLayout = ({
 
             <div className="p-4 mt-auto border-t border-border-light">
               <button 
-                onClick={() => onNavigate?.('landing')}
+                onClick={() => onNavigate?.('logout')}
                 className="w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group text-text-secondary hover:bg-red-50 hover:text-red-600"
               >
                 <LogOut className="w-5 h-5" />

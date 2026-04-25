@@ -22,6 +22,7 @@ import { CourseView } from './components/Course/CourseView';
 import { CoursesCatalog } from './components/Course/CoursesCatalog';
 import { api, RoadmapResponse, UserCourse, UserProfile } from './lib/api';
 import { MySessionsPage } from './components/Mentorship/MySessionsPage';
+import { Toaster } from 'react-hot-toast';
 
 export default function App() {
   const [view, setView] = useState<'landing' | 'dashboard' | 'login' | 'signup' | 'quiz' | 'roadmap' | 'lab' | 'network' | 'settings' | 'courses' | 'course-player' | 'sessions'>('landing');
@@ -89,6 +90,9 @@ export default function App() {
       try {
         const profile = await api.fetchMe(authToken);
         setCurrentUser(profile);
+        if (profile.dna_profile) {
+          setDnaData(profile.dna_profile as any);
+        }
         const roadmapResponse = await api.fetchLatestRoadmap(authToken);
         if ('roadmap' in roadmapResponse && roadmapResponse.roadmap === null) {
           setLatestRoadmap(null);
@@ -98,6 +102,7 @@ export default function App() {
       } catch {
         setCurrentUser(null);
         setLatestRoadmap(null);
+        setDnaData(null);
       }
     };
     loadProfile();
@@ -139,6 +144,15 @@ export default function App() {
 
   const handleNavigate = (v: string) => {
     if (v === 'landing') goToLanding();
+    else if (v === 'logout') {
+      localStorage.removeItem('auth_token');
+      setAuthToken(null);
+      setCurrentUser(null);
+      setLatestRoadmap(null);
+      setMyCourses([]);
+      setView('landing');
+      window.location.hash = '';
+    }
     else setView(v as any);
   };
 
@@ -339,6 +353,7 @@ export default function App() {
           </AnimatePresence>
         </DashboardLayout>
       )}
+      <Toaster position="bottom-right" reverseOrder={false} />
     </>
   );
 }

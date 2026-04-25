@@ -53,3 +53,39 @@ async def submit_dna(
         time_taken=payload.time_taken,
     )
     return DNASubmitResponse(**result)
+
+
+@router.get("/coach/insight")
+async def get_coach_insight(current_user_email: str = Depends(get_current_user_email)):
+    from app.db.mongodb import get_database
+    db = get_database()
+    
+    # Fetch user data
+    user = await db.users.find_one({"email": current_user_email})
+    if not user:
+        return {
+            "strength": "Ready to learn",
+            "weakness": "Needs initial assessment",
+            "suggestion": "Take the DNA assessment to unlock personalized insights."
+        }
+        
+    dna_map = user.get("dna_map", {})
+    assessment = dna_map.get("assessment", {})
+    profile = assessment.get("profile", {})
+    
+    accuracy = assessment.get("accuracy", 0)
+    learning_style = profile.get("learningStyle", "unknown")
+    
+    # Count labs
+    labs_completed = await db.user_courses.count_documents({
+        "user_id": str(user["_id"]), 
+        "module_name": {"$regex": "(?i)lab"}
+    })
+    
+    # Fallback to dummy data if no labs but need some count
+    if labs_completed == 0:
+        labs_completed = 2  # Fake it a bit as per user's "fake if needed" for demo
+
+    from app.services.dna_service import get_ai_coach_insight
+    insight = await get_ai_coach_insight(accuracy, labs_completed, learning_style)
+    return insight

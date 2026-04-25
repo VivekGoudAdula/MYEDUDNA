@@ -92,6 +92,7 @@ export type MentorMatch = {
   domain: string;
   email: string;
   match_score: number;
+  match_reason?: string;
   skills?: string[];
   experience?: string;
   interests?: string[];
@@ -156,6 +157,10 @@ export const api = {
     }),
   fetchLatestRoadmap: (token: string) =>
     request<RoadmapResponse | { roadmap: null }>("/roadmap/latest", {
+      token,
+    }),
+  fetchAICoachInsight: (token: string) =>
+    request<{ strength: string; weakness: string; suggestion: string }>("/dna/coach/insight", {
       token,
     }),
   fetchMyCourses: (token: string) =>
