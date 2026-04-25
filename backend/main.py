@@ -24,9 +24,18 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="MyEduDNA Backend", lifespan=lifespan)
 origins = [
     "http://localhost:3000",
-    "http://localhost:5173", # Standard Vite port
-    os.getenv("FRONTEND_URL", "https://myedudna.vercel.app/"),
+    "http://localhost:5173",
+    "https://myedudna.vercel.app",
+    "https://myedudna.vercel.app/",
 ]
+
+frontend_env = os.getenv("FRONTEND_URL")
+if frontend_env:
+    origins.append(frontend_env)
+    if frontend_env.endswith("/"):
+        origins.append(frontend_env[:-1])
+    else:
+        origins.append(frontend_env + "/")
 
 app.add_middleware(
     CORSMiddleware,
