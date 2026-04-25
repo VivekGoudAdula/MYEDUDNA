@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Play, 
@@ -21,6 +21,7 @@ import { Heading, Text } from '../DesignSystem/Typography';
 import { Button } from '../DesignSystem/Button';
 import { Card } from '../DesignSystem/Card';
 import { PageTransition } from '../DesignSystem/Transitions';
+import { api } from '@/src/lib/api';
 
 interface Lesson {
   id: string;
@@ -28,6 +29,8 @@ interface Lesson {
   type: 'video' | 'reading' | 'quiz' | 'lab';
   duration: string;
   completed: boolean;
+  content?: string | null;
+  questions?: Array<Record<string, unknown>> | null;
 }
 
 interface CourseViewProps {
@@ -42,81 +45,55 @@ export const CourseView = ({ courseTitle, phaseTitle, description, lessons, onBa
   const [activeLesson, setActiveLesson] = useState(lessons[0]);
   const [activeTab, setActiveTab] = useState<'content' | 'quiz' | 'assignment'>('content');
 
+  const youtubeQuery = React.useMemo(() => {
+    const query = `${courseTitle} ${activeLesson.title}`.trim();
+    return encodeURIComponent(query);
+  }, [courseTitle, activeLesson.title]);
+
+  const youtubeSearchUrl = React.useMemo(() => `https://www.youtube.com/results?search_query=${youtubeQuery}`, [youtubeQuery]);
+
+  const [videoId, setVideoId] = useState<string | null>(null);
+  const [videoError, setVideoError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadVideo = async () => {
+      if (activeLesson.type !== 'video') return;
+      setVideoError(null);
+      setVideoId(null);
+      try {
+        const query = `${courseTitle} ${activeLesson.title}`.trim();
+        const result = await api.youtubeSearch({ query });
+        setVideoId(result.video_id);
+      } catch (err) {
+        setVideoError(err instanceof Error ? err.message : 'Failed to load YouTube video.');
+      }
+    };
+    void loadVideo();
+  }, [activeLesson.type, activeLesson.title, courseTitle]);
+
   return (
     <div className="max-w-6xl mx-auto py-8 px-4 md:px-6">
       <PageTransition>
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
-          {/* Sidebar: Course Content List */}
-          <div className="lg:w-1/3 space-y-6">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="gap-2 text-text-secondary hover:text-text-primary mb-2"
-              onClick={onBack}
-            >
-              <ArrowLeft className="w-4 h-4" /> Back to Roadmap
-            </Button>
-
-            <div className="space-y-6">
-              <div className="pl-2">
-                <Heading as="h3" className="text-2xl text-text-primary">{courseTitle}</Heading>
-                <Text className="text-[10px] uppercase text-brand-pink font-bold tracking-[0.2em] mt-2">{phaseTitle}</Text>
-              </div>
-
-              <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-                {lessons.map((lesson, idx) => (
-                  <button
-                    key={lesson.id}
-                    onClick={() => setActiveLesson(lesson)}
-                    className={cn(
-                      "w-full p-4 rounded-2xl border flex items-center justify-between transition-all group shadow-sm text-left",
-                      activeLesson.id === lesson.id 
-                        ? "bg-white border-brand-pink/30 shadow-lg ring-1 ring-brand-pink/5" 
-                        : "bg-gray-50/50 border-border-light hover:border-brand-pink/20 hover:bg-white"
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-10 h-10 rounded-xl bg-white flex items-center justify-center border border-border-light group-hover:scale-110 transition-transform shadow-sm",
-                        activeLesson.id === lesson.id && "border-brand-pink/20"
-                      )}>
-                        {lesson.type === 'video' && <Youtube className="w-5 h-5 text-brand-pink" />}
-                        {lesson.type === 'reading' && <FileText className="w-5 h-5 text-brand-purple" />}
-                        {lesson.type === 'quiz' && <Target className="w-5 h-5 text-brand-red" />}
-                        {lesson.type === 'lab' && <Code className="w-5 h-5 text-emerald-600" />}
-                      </div>
-                      <div className="min-w-0">
-                        <p className={cn("text-sm font-bold truncate", activeLesson.id === lesson.id ? "text-text-primary" : "text-text-secondary group-hover:text-text-primary")}>
-                          {lesson.title}
-                        </p>
-                        <p className="text-[10px] text-text-secondary/60 uppercase font-bold tracking-wider">{lesson.duration}</p>
-                      </div>
-                    </div>
-                    {lesson.completed ? (
-                      <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                    ) : (
-                      <div className="w-5 h-5 rounded-full border-2 border-gray-200 shrink-0" />
-                    )}
-                  </button>
-                ))}
-              </div>
+          {/* Main Area: Player & Content (LEFT) */}
+          <div className="lg:w-2/3 space-y-8">
+            <div className="flex items-center justify-between">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-text-secondary hover:text-text-primary"
+                onClick={onBack}
+              >
+                <ArrowLeft className="w-4 h-4" /> Back
+              </Button>
+              <Text className="text-[10px] uppercase text-brand-pink font-bold tracking-[0.2em]">{phaseTitle}</Text>
             </div>
 
-            <Card className="p-6 bg-brand-purple/5 border-brand-purple/10 space-y-4 shadow-sm rounded-3xl">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-sm border border-brand-purple/10">
-                  <Sparkles className="w-5 h-5 text-brand-purple" />
-                </div>
-                <Heading as="h4" className="text-sm text-text-primary">AI Learning Assistant</Heading>
-              </div>
-              <Text className="text-xs text-text-secondary leading-relaxed">
-                I've customized this course experience based on your DNA Profile's preference for {activeLesson.type === 'video' ? 'visual learning' : 'interactive challenges'}.
-              </Text>
-            </Card>
-          </div>
+            <div className="space-y-2">
+              <Heading as="h2" className="text-text-primary">{courseTitle}</Heading>
+              <Text className="text-sm text-text-secondary">{description}</Text>
+            </div>
 
-          {/* Main Area: Player & Content */}
-          <div className="lg:w-2/3 space-y-8">
             {/* Navigation Tabs */}
             <div className="flex gap-4 border-b border-border-light pb-2">
                {['content', 'quiz', 'assignment'].map((tab) => (
@@ -147,20 +124,34 @@ export const CourseView = ({ courseTitle, phaseTitle, description, lessons, onBa
                 >
                   {/* Media Content Area */}
                   {activeLesson.type === 'video' ? (
-                    <div className="aspect-video w-full rounded-[2.5rem] bg-gray-100 border border-border-light overflow-hidden relative group shadow-2xl">
-                      <div className="absolute inset-0 bg-[url('https://picsum.photos/seed/edu/1920/1080')] bg-cover bg-center opacity-80 group-hover:scale-105 transition-transform duration-1000" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                         <button className="w-20 h-20 rounded-full bg-brand-pink flex items-center justify-center shadow-2xl shadow-brand-pink/40 group-hover:scale-110 transition-transform">
-                            <Play className="w-8 h-8 text-white fill-current ml-1" />
-                         </button>
-                      </div>
-                      <div className="absolute bottom-8 left-8 flex items-center gap-3">
-                         <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
-                            <span className="text-[10px] font-bold text-white uppercase tracking-[0.2em]">{activeLesson.title}</span>
-                         </div>
-                      </div>
-                    </div>
+                    <Card className="aspect-video w-full overflow-hidden border-border-light shadow-2xl rounded-[2.5rem]">
+                      {videoId ? (
+                        <iframe
+                          className="w-full h-full"
+                          src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1`}
+                          title={activeLesson.title}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          referrerPolicy="strict-origin-when-cross-origin"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                          <div className="text-center space-y-2">
+                            <Text className="text-text-secondary">
+                              {videoError ? 'Video unavailable in embed.' : 'Loading video...'}
+                            </Text>
+                            <a
+                              href={youtubeSearchUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs font-bold text-brand-pink hover:underline"
+                            >
+                              Open on YouTube
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                    </Card>
                   ) : (
                     <Card className="p-12 bg-white border-border-light shadow-xl rounded-[2.5rem] min-h-[400px] flex flex-col items-center justify-center text-center space-y-6">
                        <div className="w-20 h-20 rounded-3xl bg-brand-purple/5 flex items-center justify-center border border-brand-purple/10">
@@ -168,8 +159,15 @@ export const CourseView = ({ courseTitle, phaseTitle, description, lessons, onBa
                           {activeLesson.type === 'lab' && <Code className="w-10 h-10 text-emerald-500" />}
                        </div>
                        <Heading as="h2">{activeLesson.title}</Heading>
-                       <Text className="max-w-md mx-auto">This module is an interactive {activeLesson.type} session designed to reinforce the current learning phase.</Text>
-                       <Button variant="primary" size="lg" className="px-12">Initialize {activeLesson.type.toUpperCase()}</Button>
+                       {activeLesson.content ? (
+                         <Text className="max-w-2xl mx-auto text-base text-text-secondary whitespace-pre-wrap leading-relaxed">
+                           {activeLesson.content}
+                         </Text>
+                       ) : (
+                         <Text className="max-w-md mx-auto text-text-secondary">
+                           Content for this lesson is not available yet.
+                         </Text>
+                       )}
                     </Card>
                   )}
 
@@ -182,10 +180,23 @@ export const CourseView = ({ courseTitle, phaseTitle, description, lessons, onBa
                       </div>
                       
                       <div className="space-y-6 text-text-secondary leading-relaxed text-lg">
-                         <p>Welcome to <strong>{activeLesson.title}</strong>. In this session, we'll dive deep into the core mechanics of <em>{courseTitle}</em>.</p>
-                         <p>Our AI model suggests focusing on the connection between architectural patterns and practical implementation. This aligns with your historical performance in the {phaseTitle} phase.</p>
+                         <p>
+                           Welcome to <strong>{activeLesson.title}</strong>. In this session, we'll dive deep into the core mechanics of <em>{courseTitle}</em>.
+                         </p>
+                         <p>
+                           Our AI model suggests focusing on the connection between architectural patterns and practical implementation. This aligns with your historical performance in the {phaseTitle} phase.
+                         </p>
+
+                         {activeLesson.content && (
+                           <Card className="p-8 rounded-4xl bg-white border border-border-light shadow-sm">
+                             <Heading as="h3" className="text-text-primary text-xl mb-4">Lesson Content</Heading>
+                             <div className="space-y-4 text-base text-text-secondary whitespace-pre-wrap leading-relaxed">
+                               {activeLesson.content}
+                             </div>
+                           </Card>
+                         )}
                          
-                         <div className="p-8 rounded-[2rem] bg-gray-50 border border-border-light my-8 relative overflow-hidden shadow-sm">
+                         <div className="p-8 rounded-4xl bg-gray-50 border border-border-light my-8 relative overflow-hidden shadow-sm">
                             <div className="absolute top-0 right-0 p-8 opacity-10">
                               <Sparkles className="w-20 h-20 text-brand-purple" />
                             </div>
@@ -234,20 +245,37 @@ export const CourseView = ({ courseTitle, phaseTitle, description, lessons, onBa
                     </div>
 
                     <div className="space-y-6">
-                      <Text className="text-xl font-bold text-text-primary leading-tight">In the context of {courseTitle}, what is the primary role of the 'Linkage' node?</Text>
-                      <div className="space-y-4">
-                         {[
-                           'To store long-term static weight attributes',
-                           'To negotiate latency between executor clusters',
-                           'To act as a firewall for neural traffic',
-                           'To generate synthetic training permutations'
-                         ].map((opt, i) => (
-                           <button key={i} className="w-full text-left p-6 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-brand-pink/30 hover:shadow-lg transition-all text-sm group flex items-start gap-4">
-                              <span className="text-text-secondary/40 font-mono font-bold mt-1">{String.fromCharCode(65 + i)}</span>
-                              <span className="group-hover:text-text-primary font-medium transition-colors text-base">{opt}</span>
-                           </button>
-                         ))}
-                      </div>
+                      {Array.isArray(activeLesson.questions) && activeLesson.questions.length ? (
+                        <>
+                          <Text className="text-xl font-bold text-text-primary leading-tight">Quiz</Text>
+                          <div className="space-y-6">
+                            {activeLesson.questions.slice(0, 10).map((q, qi) => {
+                              const questionText = typeof q.question === 'string' ? q.question : `Question ${qi + 1}`;
+                              const options = Array.isArray((q as any).options) ? (q as any).options : [];
+                              return (
+                                <div key={`${activeLesson.id}-q-${qi}`} className="space-y-3">
+                                  <Text className="text-base font-bold text-text-primary">{qi + 1}. {questionText}</Text>
+                                  <div className="space-y-3">
+                                    {options.map((opt: string, oi: number) => (
+                                      <button
+                                        key={`${activeLesson.id}-q-${qi}-o-${oi}`}
+                                        className="w-full text-left p-5 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-brand-pink/30 hover:shadow-lg transition-all text-sm group flex items-start gap-4"
+                                      >
+                                        <span className="text-text-secondary/40 font-mono font-bold mt-1">{String.fromCharCode(65 + oi)}</span>
+                                        <span className="group-hover:text-text-primary font-medium transition-colors text-base">{opt}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </>
+                      ) : (
+                        <Text className="text-text-secondary">
+                          No quiz questions in this lesson. Select a quiz lesson from the right panel.
+                        </Text>
+                      )}
                     </div>
 
                     <div className="pt-8 flex flex-col sm:flex-row justify-between items-center gap-6 border-t border-border-light">
@@ -272,7 +300,7 @@ export const CourseView = ({ courseTitle, phaseTitle, description, lessons, onBa
                     </div>
 
                     <div className="space-y-4 relative z-10">
-                      <div className="w-16 h-16 rounded-[1.5rem] bg-brand-purple/5 flex items-center justify-center border border-brand-purple/10">
+                      <div className="w-16 h-16 rounded-3xl bg-brand-purple/5 flex items-center justify-center border border-brand-purple/10">
                         <BookOpen className="w-8 h-8 text-brand-purple" />
                       </div>
                       <Heading as="h1">Practical <span className="text-gradient">Synthesis</span></Heading>
@@ -317,6 +345,66 @@ export const CourseView = ({ courseTitle, phaseTitle, description, lessons, onBa
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
+
+          {/* Lesson List (RIGHT) */}
+          <div className="lg:w-1/3 space-y-6">
+            <Card className="p-6 bg-white border-border-light shadow-sm rounded-3xl space-y-4">
+              <Heading as="h4" className="text-text-primary">Module Contents</Heading>
+              <Text className="text-sm text-text-secondary">
+                Choose a lesson to study. Quizzes appear in the Quiz tab automatically.
+              </Text>
+            </Card>
+
+            <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+              {lessons.map((lesson) => (
+                <button
+                  key={lesson.id}
+                  onClick={() => setActiveLesson(lesson)}
+                  className={cn(
+                    "w-full p-4 rounded-2xl border flex items-center justify-between transition-all group shadow-sm text-left",
+                    activeLesson.id === lesson.id
+                      ? "bg-white border-brand-pink/30 shadow-lg ring-1 ring-brand-pink/5"
+                      : "bg-gray-50/50 border-border-light hover:border-brand-pink/20 hover:bg-white"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-10 h-10 rounded-xl bg-white flex items-center justify-center border border-border-light group-hover:scale-110 transition-transform shadow-sm",
+                      activeLesson.id === lesson.id && "border-brand-pink/20"
+                    )}>
+                      {lesson.type === 'video' && <Youtube className="w-5 h-5 text-brand-pink" />}
+                      {lesson.type === 'reading' && <FileText className="w-5 h-5 text-brand-purple" />}
+                      {lesson.type === 'quiz' && <Target className="w-5 h-5 text-brand-red" />}
+                      {lesson.type === 'lab' && <Code className="w-5 h-5 text-emerald-600" />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className={cn("text-sm font-bold truncate", activeLesson.id === lesson.id ? "text-text-primary" : "text-text-secondary group-hover:text-text-primary")}>
+                        {lesson.title}
+                      </p>
+                      <p className="text-[10px] text-text-secondary/60 uppercase font-bold tracking-wider">{lesson.duration}</p>
+                    </div>
+                  </div>
+                  {lesson.completed ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full border-2 border-gray-200 shrink-0" />
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <Card className="p-6 bg-brand-purple/5 border-brand-purple/10 space-y-4 shadow-sm rounded-3xl">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-sm border border-brand-purple/10">
+                  <Sparkles className="w-5 h-5 text-brand-purple" />
+                </div>
+                <Heading as="h4" className="text-sm text-text-primary">AI Learning Assistant</Heading>
+              </div>
+              <Text className="text-xs text-text-secondary leading-relaxed">
+                I've customized this course experience based on your DNA Profile's preference for {activeLesson.type === 'video' ? 'visual learning' : 'interactive challenges'}.
+              </Text>
+            </Card>
           </div>
         </div>
       </PageTransition>

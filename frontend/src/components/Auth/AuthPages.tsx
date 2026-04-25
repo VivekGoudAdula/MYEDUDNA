@@ -6,6 +6,7 @@ import { Button } from '@/src/components/DesignSystem/Button';
 import { Input } from '@/src/components/DesignSystem/Input';
 import { Card } from '@/src/components/DesignSystem/Card';
 import { cn } from '@/src/lib/utils';
+import { api } from '@/src/lib/api';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -27,12 +28,7 @@ const AuthLayout = ({ children, title, subtitle, illustrationTitle, illustration
         </div>
 
         <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-premium flex items-center justify-center shadow-lg">
-            <Dna className="text-white w-6 h-6" />
-          </div>
-          <span className="text-2xl font-display font-bold tracking-tight italic text-text-primary">
-            Edu<span className="text-gradient font-bold">DNA</span>
-          </span>
+          <img src="/image.png" alt="EduDNA Logo" className="h-20 w-auto" />
         </div>
 
         <motion.div 
@@ -75,8 +71,7 @@ const AuthLayout = ({ children, title, subtitle, illustrationTitle, illustration
       {/* Right Side: Auth Form */}
       <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-4 sm:p-12 relative bg-white overflow-y-auto">
         <div className="absolute top-6 left-6 lg:hidden flex items-center gap-2">
-            <Dna className="text-brand-pink w-5 h-5" />
-            <span className="text-lg font-display font-bold italic text-text-primary">Edu<span className="text-gradient">DNA</span></span>
+            <img src="/image.png" alt="EduDNA Logo" className="h-14 w-auto" />
         </div>
 
         <motion.div 
@@ -103,7 +98,25 @@ const AuthLayout = ({ children, title, subtitle, illustrationTitle, illustration
   );
 };
 
-export const LoginPage = ({ onSwitch, onLogin }: { onSwitch: () => void, onLogin: (role?: 'student') => void }) => {
+export const LoginPage = ({ onSwitch, onLogin }: { onSwitch: () => void, onLogin: (token: string) => void }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+    try {
+      const response = await api.login({ email, password });
+      onLogin(response.access_token);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <AuthLayout 
@@ -116,11 +129,13 @@ export const LoginPage = ({ onSwitch, onLogin }: { onSwitch: () => void, onLogin
 
 
 
-        <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); onLogin(); }}>
+        <form className="space-y-5" onSubmit={handleSubmit}>
           <Input 
             label="Neural ID / Email" 
             placeholder="alex@edudna.ai" 
             type="email" 
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
           />
           <div className="space-y-1">
@@ -128,6 +143,8 @@ export const LoginPage = ({ onSwitch, onLogin }: { onSwitch: () => void, onLogin
               label="Security Key" 
               placeholder="••••••••" 
               type="password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               required
             />
             <div className="flex justify-end pt-1">
@@ -147,7 +164,10 @@ export const LoginPage = ({ onSwitch, onLogin }: { onSwitch: () => void, onLogin
             <label htmlFor="remember" className="text-sm text-text-secondary cursor-pointer select-none">Persistent Session</label>
           </div>
 
-          <Button variant="primary" className="w-full py-5 text-lg" type="submit">Initialize Sync</Button>
+          {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
+          <Button variant="primary" className="w-full py-5 text-lg" type="submit" disabled={isLoading}>
+            {isLoading ? 'Signing in...' : 'Initialize Sync'}
+          </Button>
         </form>
 
         <p className="text-center text-sm font-medium">
@@ -159,7 +179,7 @@ export const LoginPage = ({ onSwitch, onLogin }: { onSwitch: () => void, onLogin
   );
 };
 
-export const SignupPage = ({ onSwitch, onSignup }: { onSwitch: () => void, onSignup: (level: string) => void }) => {
+export const SignupPage = ({ onSwitch, onSignup }: { onSwitch: () => void, onSignup: (token: string, level: string) => void }) => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     firstName: '',
@@ -174,6 +194,30 @@ export const SignupPage = ({ onSwitch, onSignup }: { onSwitch: () => void, onSig
     interests: [] as string[],
     careerGoal: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const handleSignup = async () => {
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      const name = `${formData.firstName} ${formData.lastName}`.trim();
+      await api.signup({
+        name,
+        email: formData.email,
+        password: formData.password,
+      });
+      const loginResponse = await api.login({
+        email: formData.email,
+        password: formData.password,
+      });
+      onSignup(loginResponse.access_token, formData.educationLevel);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Signup failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
 
   const nextStep = () => setStep(s => s + 1);
   const prevStep = () => setStep(s => s - 1);
@@ -400,12 +444,13 @@ export const SignupPage = ({ onSwitch, onSignup }: { onSwitch: () => void, onSig
               <Button 
                 variant="primary" 
                 className="flex-[2] py-5 text-lg" 
-                onClick={() => onSignup(formData.educationLevel)}
-                disabled={formData.interests.length < 3}
+                onClick={handleSignup}
+                disabled={formData.interests.length < 3 || isSubmitting}
               >
-                Map My Profile
+                {isSubmitting ? 'Creating Profile...' : 'Map My Profile'}
               </Button>
             </div>
+            {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
           </motion.div>
         );
       default:

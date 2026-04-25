@@ -25,33 +25,49 @@ export const PageTransition = ({ children }: PageTransitionProps) => {
 
 export const NeuralLoading = () => {
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-bg-dark">
-      <div className="relative">
-        <motion.div 
-          animate={{ 
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.6, 0.3],
-            rotate: [0, 180, 360]
-          }}
-          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-          className="w-32 h-32 rounded-full border border-brand-pink/20 blur-xl"
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-bg-dark/95 backdrop-blur-md">
+      <div className="relative w-[320px] h-[220px] rounded-3xl border border-white/10 bg-black/20 overflow-hidden shadow-2xl">
+        <motion.div
+          animate={{ x: ['-20%', '120%'] }}
+          transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+          className="absolute -top-16 left-0 w-32 h-32 rounded-full bg-brand-pink/30 blur-3xl"
         />
-        <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
-           <motion.div
-             animate={{ rotateY: 360 }}
-             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-             className="w-12 h-12 rounded-xl bg-gradient-premium flex items-center justify-center shadow-[0_0_20px_rgba(255,45,85,0.4)]"
-           >
-              <div className="w-6 h-6 border-2 border-white rounded-sm animate-pulse" />
-           </motion.div>
-           <motion.p 
-             initial={{ opacity: 0 }}
-             animate={{ opacity: 1 }}
-             transition={{ duration: 0.5, delay: 0.2 }}
-             className="text-[10px] font-mono uppercase tracking-[0.5em] text-brand-pink"
-           >
-             Syncing DNA...
-           </motion.p>
+        <motion.div
+          animate={{ x: ['120%', '-20%'] }}
+          transition={{ duration: 3.5, repeat: Infinity, ease: 'linear' }}
+          className="absolute -bottom-16 right-0 w-36 h-36 rounded-full bg-brand-purple/30 blur-3xl"
+        />
+
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-5">
+          <div className="relative flex items-center justify-center w-20 h-20">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2.2, repeat: Infinity, ease: 'linear' }}
+              className="absolute inset-0 rounded-full border-2 border-white/20 border-t-brand-pink"
+            />
+            <motion.div
+              animate={{ scale: [1, 1.08, 1] }}
+              transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+              className="w-11 h-11 rounded-xl bg-gradient-premium shadow-[0_0_25px_rgba(255,45,85,0.5)]"
+            />
+          </div>
+
+          <motion.p
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="text-[11px] font-semibold uppercase tracking-[0.25em] text-white/90"
+          >
+            Initializing Dashboard...
+          </motion.p>
+
+          <div className="w-52 h-1.5 rounded-full bg-white/10 overflow-hidden">
+            <motion.div
+              animate={{ x: ['-100%', '180%'] }}
+              transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+              className="w-24 h-full bg-gradient-premium"
+            />
+          </div>
         </div>
       </div>
     </div>

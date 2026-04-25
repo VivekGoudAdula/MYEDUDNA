@@ -244,32 +244,32 @@ export const VirtualLab = () => {
             <Text className="text-text-secondary max-w-xl mx-auto text-sm md:text-base">Explore high-fidelity interactive simulations designed to optimize your neural learning profile.</Text>
          </div>
 
-         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10">
             {labCategories.map((cat) => (
               <Card 
                 key={cat.name} 
                 className={cn(
-                  "group relative hover:scale-[1.02] transition-all cursor-pointer p-6 md:p-10 overflow-hidden flex flex-col items-center text-center space-y-6 border-border-light bg-white shadow-md hover:shadow-2xl"
+                  "group relative hover:scale-[1.04] active:scale-95 transition-all duration-500 cursor-pointer p-8 md:p-12 overflow-hidden flex flex-col items-center text-center space-y-8 border-border-light bg-white shadow-[0_20px_50px_rgba(0,0,0,0.05)] hover:shadow-[0_40px_80px_rgba(0,0,0,0.1)] rounded-[3rem]"
                 )}
                 onClick={() => {
                   setSelectedCategory(cat.name);
                   setView('list');
                 }}
               >
-                 <div className={cn("absolute inset-0 bg-gradient-to-b opacity-0 group-hover:opacity-10 transition-opacity", cat.gradient)} />
-                 <div className={cn("relative z-10 w-16 h-16 md:w-24 md:h-24 rounded-2xl md:rounded-[2.5rem] bg-gray-50 flex items-center justify-center border border-gray-100 group-hover:bg-white group-hover:scale-110 transition-all shadow-sm", cat.color)}>
-                    <cat.icon className="w-8 h-8 md:w-12 md:h-12" />
+                 <div className={cn("absolute inset-0 bg-gradient-to-b opacity-0 group-hover:opacity-20 transition-opacity duration-700", cat.gradient)} />
+                 <div className={cn("relative z-10 w-24 h-24 md:w-32 md:h-32 rounded-[2.5rem] md:rounded-[3.5rem] bg-gray-50 flex items-center justify-center border border-gray-100 group-hover:bg-white group-hover:rotate-6 transition-all duration-700 shadow-sm", cat.color)}>
+                    <cat.icon className="w-10 h-10 md:w-16 md:h-16" />
                  </div>
-                 <div className="relative z-10 space-y-2">
-                    <Heading as="h3" className="text-lg md:text-xl tracking-tight text-text-primary">{cat.name}</Heading>
-                    <Text className="text-[10px] md:text-xs text-text-secondary leading-relaxed px-2 font-medium">{cat.desc}</Text>
+                 <div className="relative z-10 space-y-3">
+                    <Heading as="h3" className="text-xl md:text-2xl font-display font-bold tracking-tight text-text-primary">{cat.name}</Heading>
+                    <Text className="text-xs md:text-sm text-text-secondary leading-relaxed px-4 opacity-70">{cat.desc}</Text>
                  </div>
-                 <Button variant="ghost" className={cn("relative z-10 gap-2 font-bold group-hover:bg-gray-100 transition-all text-[10px] md:text-xs tracking-widest", cat.color)}>
-                    ENTER SANDBOX <ChevronRight className="w-4 h-4" />
-                 </Button>
+                 <div className={cn("relative z-10 py-3 px-6 rounded-2xl bg-gray-50 font-bold group-hover:bg-white transition-all text-[10px] md:text-xs tracking-[0.3em] uppercase", cat.color)}>
+                    Initialize Hub
+                 </div>
               </Card>
             ))}
-         </div>
+          </div>
       </div>
     );
   }
@@ -342,121 +342,131 @@ export const VirtualLab = () => {
       <div className="h-full flex flex-col bg-bg-light text-text-primary relative overflow-hidden">
          {/* Top Header */}
          <div className="px-4 md:px-8 py-4 md:py-5 border-b border-border-light flex items-center justify-between bg-white/80 backdrop-blur-xl z-[40] shadow-sm">
-            <div className="flex items-center gap-3 md:gap-8">
-               <button 
-                onClick={() => setView('list')}
-                className="w-10 h-10 md:w-12 md:h-12 rounded-xl border border-border-light flex items-center justify-center hover:bg-gray-100 transition-all group bg-white shadow-sm"
-               >
-                  <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 text-text-secondary group-hover:text-text-primary" />
-               </button>
-               <div className="min-w-0">
-                  <h2 className="text-[10px] md:text-sm font-bold uppercase tracking-[0.2em] md:tracking-[0.3em] text-text-primary truncate">{activeExp.name}</h2>
-                  <div className="flex items-center gap-2 md:gap-4 text-[8px] md:text-[10px] font-bold text-text-secondary/60">
-                     <span className="flex items-center gap-1 uppercase shrink-0"><Terminal className="w-3 h-3 md:w-4 md:h-4" /> SEQ_{activeExp.id.toUpperCase().slice(0, 4)}</span>
-                     <span className="flex items-center gap-1 text-emerald-600 uppercase tracking-widest shrink-0"><Activity className="w-3 h-3 md:w-4 md:h-4" /> Active</span>
+            <div className="flex items-center gap-4 md:gap-8">
+               <div className="flex items-center gap-2">
+                  <button 
+                   onClick={() => setView('list')}
+                   className="w-8 h-8 md:w-9 md:h-9 rounded-lg border border-border-light flex items-center justify-center hover:bg-gray-100 transition-all group bg-white shadow-sm"
+                  >
+                     <ArrowLeft className="w-3.5 h-3.5 text-text-secondary group-hover:text-text-primary" />
+                  </button>
+                  <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-brand-purple/5 border border-brand-purple/10 flex items-center justify-center">
+                    <img src="/image.png" alt="Logo" className="w-6 h-auto" />
+                  </div>
+               </div>
+               <div className="min-w-0 border-l border-border-light pl-4 md:pl-8">
+                  <h2 className="text-xs md:text-sm font-display font-bold uppercase tracking-[0.2em] text-text-primary truncate">{activeExp.name}</h2>
+                  <div className="flex items-center gap-2 md:gap-4 text-[7px] md:text-[8px] font-bold text-text-secondary/60">
+                     <span className="flex items-center gap-1 uppercase shrink-0 px-1.5 py-0.5 rounded-md bg-gray-100"><Terminal className="w-2.5 h-2.5" /> SEQ_{activeExp.id.toUpperCase().slice(0, 4)}</span>
+                     <span className="flex items-center gap-1 text-emerald-600 uppercase tracking-widest shrink-0"><Activity className="w-2.5 h-2.5" /> System Stable</span>
                   </div>
                </div>
             </div>
 
-            <div className="flex items-center gap-2 md:gap-8">
+            <div className="flex items-center gap-2 md:gap-4">
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className={cn("gap-2 font-bold uppercase tracking-widest text-[9px] md:text-[10px]", isAssistantOpen ? "text-brand-purple bg-brand-purple/5" : "text-text-secondary")}
+                  className={cn("gap-2 font-bold uppercase tracking-widest text-[8px] md:text-[9px] h-8 md:h-9", isAssistantOpen ? "text-brand-purple bg-brand-purple/5" : "text-text-secondary")}
                   onClick={() => setIsAssistantOpen(!isAssistantOpen)}
                 >
-                   <Brain className="w-3.5 h-3.5 md:w-4 md:h-4" /> <span className="hidden sm:inline">AI Assistant</span>
+                   <Brain className="w-3 h-3 md:w-3.5 md:h-3.5" /> <span className="hidden sm:inline">AI Assistant</span>
                 </Button>
-                <div className="h-6 md:h-8 w-px bg-border-light hidden md:block" />
-                <Button variant="ghost" size="sm" className="w-10 h-10 md:w-12 md:h-12 p-0 rounded-xl border border-border-light bg-white hover:bg-gray-50 shadow-sm" onClick={() => setView('hub')}>
-                   <X className="w-4 h-4 md:w-5 md:h-5 text-text-secondary" />
+                <div className="h-5 md:h-6 w-px bg-border-light hidden md:block" />
+                <Button variant="ghost" size="sm" className="w-8 h-8 md:w-9 md:h-9 p-0 rounded-lg border border-border-light bg-white hover:bg-gray-50 shadow-sm" onClick={() => setView('hub')}>
+                   <X className="w-3.5 h-3.5 text-text-secondary" />
                 </Button>
             </div>
          </div>
 
-         {/* Simulation Split Layout */}
-         <div className="flex-1 flex min-h-0 relative">
-            {/* LEFT: Rendering Area */}
-            <div className="flex-1 p-4 md:p-10 flex flex-col min-w-0">
-               <div className="flex-1 rounded-2xl md:rounded-[2.5rem] border border-border-light bg-white overflow-hidden relative shadow-2xl">
-                  {renderSimulation()}
+         {/* Simulation Immersive Layout */}
+         <div className="flex-1 flex flex-col min-h-0 relative bg-gray-50/50 overflow-hidden">
+            {/* Main Lab Canvas Area */}
+            <div className={cn(
+              "flex-1 flex flex-col transition-all duration-500 ease-in-out p-4 md:p-8 lg:p-10",
+              isAssistantOpen ? "lg:mr-[450px]" : "mr-0"
+            )}>
+               <div className="flex-1 rounded-3xl md:rounded-[3.5rem] border-2 border-white/50 bg-white overflow-hidden relative shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] ring-1 ring-black/5 flex flex-col">
+                  <div className="flex-1 relative">
+                    {renderSimulation()}
+                  </div>
+                  
+                  {/* Bottom Results Integrated Console */}
+                  <AnimatePresence>
+                    {captureHistory.length > 0 && (
+                       <motion.div 
+                         initial={{ y: 20, opacity: 0 }}
+                         animate={{ y: 0, opacity: 1 }}
+                         className="border-t border-border-light bg-white/80 backdrop-blur-md p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                       >
+                          <div className="flex items-center gap-4 md:gap-8">
+                             <div className="flex flex-col">
+                                <span className="text-[8px] md:text-[10px] uppercase font-bold text-text-secondary/40 tracking-[0.2em] mb-1">Live Telemetry</span>
+                                <span className="text-[10px] md:text-xs font-bold text-brand-purple uppercase tracking-widest">Data Stream Active</span>
+                             </div>
+                             <div className="h-8 w-px bg-border-light" />
+                             <div className="flex flex-wrap gap-6 md:gap-10">
+                                {Object.entries(captureHistory[captureHistory.length - 1]).filter(([k]) => k !== 'timestamp' && k !== 'endpoint').map(([key, val]) => (
+                                  <div key={key} className="flex flex-col">
+                                     <span className="text-[8px] md:text-[9px] uppercase font-bold text-text-secondary/30 tracking-wider mb-0.5">{key}</span>
+                                     <span className="text-xs md:text-base font-display font-bold text-text-primary">{val as any}</span>
+                                   </div>
+                                ))}
+                             </div>
+                          </div>
+                          <Button variant="outline" size="sm" className="text-brand-purple border-brand-purple/20 gap-2 text-[9px] md:text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-brand-purple/5 px-6 rounded-xl h-10">
+                             Download Dataset <ChevronRight className="w-3 h-3" />
+                          </Button>
+                       </motion.div>
+                    )}
+                  </AnimatePresence>
                </div>
-               
-               {/* Bottom Results Tape */}
-               <AnimatePresence>
-                 {captureHistory.length > 0 && (
-                    <motion.div 
-                      initial={{ y: 50, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      className="mt-4 md:mt-8 p-4 md:p-6 bg-white border border-border-light rounded-2xl md:rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl"
-                    >
-                       <div className="flex items-center gap-4 md:gap-10">
-                          <div className="flex flex-col">
-                             <span className="text-[8px] md:text-[10px] uppercase font-bold text-text-secondary tracking-[0.2em] mb-1">Last Results</span>
-                             <span className="text-[10px] md:text-xs font-bold text-emerald-600 uppercase tracking-widest">Sync Successful</span>
-                          </div>
-                          <div className="h-8 md:h-10 w-px bg-border-light" />
-                          <div className="flex flex-wrap gap-4 md:gap-12">
-                             {Object.entries(captureHistory[captureHistory.length - 1]).filter(([k]) => k !== 'timestamp' && k !== 'endpoint').map(([key, val]) => (
-                               <div key={key} className="flex flex-col">
-                                  <span className="text-[8px] md:text-[10px] uppercase font-bold text-text-secondary/40 tracking-tighter mb-1">{key}</span>
-                                  <span className="text-xs md:text-sm font-bold text-text-primary">{val as any}</span>
-                                </div>
-                             ))}
-                          </div>
-                       </div>
-                       <Button variant="ghost" size="sm" className="text-brand-purple gap-2 text-[9px] md:text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-brand-purple/5 px-4 md:px-6 rounded-xl w-full sm:w-auto">
-                          Research Journal <ChevronRight className="w-4 h-4" />
-                       </Button>
-                    </motion.div>
-                 )}
-               </AnimatePresence>
             </div>
 
             {/* RIGHT: Steps & AI */}
             <AnimatePresence>
               {isAssistantOpen && (
                 <motion.div 
-                  initial={{ x: 450, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: 450, opacity: 0 }}
-                  className="fixed md:static inset-y-0 right-0 w-[280px] sm:w-[350px] md:w-[450px] border-l border-border-light p-6 md:p-10 flex flex-col bg-white z-[50] md:z-20 overflow-y-auto custom-scrollbar shadow-2xl"
+                  initial={{ x: 400 }}
+                  animate={{ x: 0 }}
+                  exit={{ x: 400 }}
+                  className="fixed inset-y-0 right-0 w-full sm:w-[320px] md:w-[380px] border-l border-border-light p-4 md:p-6 flex flex-col bg-white z-[50] overflow-y-auto custom-scrollbar shadow-[-20px_0_40px_rgba(0,0,0,0.05)]"
                 >
-                   <div className="space-y-8 md:space-y-10">
+                   <div className="space-y-6 md:space-y-8">
                       <div>
-                         <div className="flex items-center justify-between mb-4 md:mb-6">
-                            <div className="flex items-center gap-3 text-brand-purple">
-                               <Brain className="w-5 h-5 md:w-6 md:h-6" />
-                               <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em]">AI Lab Partner</span>
+                         <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2 text-brand-purple">
+                               <Brain className="w-4 h-4 md:w-5 md:h-5" />
+                               <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em]">AI Lab Partner</span>
                             </div>
-                            <Button variant="ghost" size="sm" className="md:hidden border border-border-light w-8 h-8 p-0 rounded-lg" onClick={() => setIsAssistantOpen(false)}>
-                               <X className="w-4 h-4 text-text-secondary" />
+                            <Button variant="ghost" size="sm" className="md:hidden border border-border-light w-7 h-7 p-0 rounded-lg" onClick={() => setIsAssistantOpen(false)}>
+                               <X className="w-3.5 h-3.5 text-text-secondary" />
                             </Button>
                          </div>
-                         <div className="p-4 md:p-6 rounded-2xl md:rounded-3xl bg-gray-50 border border-border-light text-xs md:text-sm leading-relaxed italic text-text-secondary font-medium shadow-sm">
+                         <div className="p-4 rounded-xl bg-gray-50 border border-border-light text-[10px] md:text-xs leading-relaxed italic text-text-secondary font-medium shadow-sm">
                             "I've optimized the {activeExp.name} module for your DNA profile. Follow the steps precisely."
                          </div>
                       </div>
 
-                      <div className="space-y-6 md:space-y-8">
-                         <div className="flex items-center gap-3 px-2">
-                            <BookOpen className="w-4 h-4 md:w-5 md:h-5 text-text-secondary/40" />
-                            <h4 className="text-[10px] md:text-[11px] uppercase tracking-[0.2em] md:tracking-[0.25em] text-text-secondary font-bold">Procedure Steps</h4>
+                      <div className="space-y-4 md:space-y-6">
+                         <div className="flex items-center gap-2 px-2">
+                            <BookOpen className="w-3.5 h-3.5 md:w-4 md:h-4 text-text-secondary/40" />
+                            <h4 className="text-[9px] md:text-[10px] uppercase tracking-[0.2em] text-text-secondary font-bold">Procedure Steps</h4>
                          </div>
-                         <div className="space-y-3 md:space-y-4">
+                         <div className="space-y-2 md:space-y-3">
                             {activeExp.instructions.map((step, i) => (
                               <div key={i} className={cn(
-                                "flex gap-3 md:gap-5 group p-4 md:p-5 rounded-xl md:rounded-2xl transition-all border shadow-sm",
-                                activeStep === i ? "bg-white border-brand-purple/30 shadow-lg ring-1 ring-brand-purple/5" : "bg-gray-50/50 border-transparent hover:bg-white hover:border-gray-200"
+                                "flex gap-3 group p-3 md:p-4 rounded-xl transition-all border shadow-sm",
+                                activeStep === i ? "bg-white border-brand-purple/30 shadow-md ring-1 ring-brand-purple/5" : "bg-gray-50/50 border-transparent hover:bg-white hover:border-gray-200"
                               )}>
                                  <div className={cn(
-                                   "w-6 h-6 md:w-8 md:h-8 rounded-lg md:rounded-xl border flex items-center justify-center font-bold text-[10px] md:text-[11px] shrink-0 transition-all shadow-sm",
+                                   "w-5 h-5 md:w-6 md:h-6 rounded-lg border flex items-center justify-center font-bold text-[9px] md:text-[10px] shrink-0 transition-all shadow-sm",
                                    activeStep === i ? "bg-brand-purple border-brand-purple text-white" : "bg-white border-border-light text-text-secondary/40"
                                  )}>
                                     {i + 1}
                                  </div>
                                  <p className={cn(
-                                   "text-[11px] md:text-[13px] leading-relaxed transition-colors font-medium",
+                                   "text-[10px] md:text-[12px] leading-relaxed transition-colors font-medium",
                                    activeStep === i ? "text-text-primary" : "text-text-secondary"
                                  )}>{step}</p>
                               </div>
@@ -467,7 +477,7 @@ export const VirtualLab = () => {
                            <Button 
                             variant="secondary" 
                             size="sm" 
-                            className="w-full text-[10px] md:text-xs font-bold uppercase tracking-widest h-12 md:h-14 border-gray-200 hover:border-brand-purple/40 hover:text-brand-purple rounded-xl md:rounded-2xl shadow-sm"
+                            className="w-full text-[9px] md:text-[10px] font-bold uppercase tracking-widest h-10 md:h-12 border-gray-200 hover:border-brand-purple/40 hover:text-brand-purple rounded-xl shadow-sm"
                             onClick={() => setActiveStep(prev => prev + 1)}
                            >
                               Next Step ({activeStep + 1})

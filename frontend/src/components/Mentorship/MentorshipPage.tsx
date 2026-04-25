@@ -1,332 +1,558 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Users, 
   Search, 
+  Users, 
+  Star, 
+  MapPin, 
   MessageSquare, 
   Calendar, 
-  UserPlus, 
-  Sparkles, 
-  Filter, 
-  ChevronRight, 
-  CheckCircle2, 
-  Clock,
+  ExternalLink,
   ShieldCheck,
   Zap,
-  Target,
+  Sparkles,
+  Info,
+  X,
+  Award,
+  BookOpen,
   Briefcase,
-  Star
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
-import { cn } from '@/src/lib/utils';
 import { Heading, Text } from '../DesignSystem/Typography';
 import { Button } from '../DesignSystem/Button';
 import { Card } from '../DesignSystem/Card';
-
-interface Mentor {
-  id: string;
-  name: string;
-  domain: string;
-  experience: string;
-  company: string;
-  bio: string;
-  interests: string[];
-  dnaType: string[]; // Matching keywords
-  avatar: string;
-  verified: boolean;
-  matchScore: number;
-}
-
-const mentors: Mentor[] = [
-  {
-    id: 'm1',
-    name: 'Dr. Sarah Chen',
-    domain: 'Neural Engineering',
-    experience: '12 Years',
-    company: 'Neural Dynamics',
-    bio: 'Pioneering work in brain-computer interfaces and neural plasticity.',
-    interests: ['AI', 'Neuroscience', 'Deep Learning'],
-    dnaType: ['Analytical', 'Practical', 'Technical'],
-    avatar: 'https://picsum.photos/seed/sarah2/200/200',
-    verified: true,
-    matchScore: 0 // Will be calculated
-  },
-  {
-    id: 'm2',
-    name: 'Marcus Thorne',
-    domain: 'Software Architecture',
-    experience: '15 Years',
-    company: 'Google Cloud',
-    bio: 'Specialist in distributed systems and large-scale cloud infrastructure.',
-    interests: ['Coding', 'Architecture', 'Cloud'],
-    dnaType: ['Practical', 'Logical', 'Theoretical'],
-    avatar: 'https://picsum.photos/seed/marcus2/200/200',
-    verified: true,
-    matchScore: 0
-  },
-  {
-    id: 'm3',
-    name: 'Elena Rodriguez',
-    domain: 'UX & Product Design',
-    experience: '8 Years',
-    company: 'Adobe',
-    bio: 'Crafting intuitive digital experiences through cognitive psychology.',
-    interests: ['Design', 'UX', 'Psychology'],
-    dnaType: ['Creative', 'Visual', 'Empathetic'],
-    avatar: 'https://picsum.photos/seed/elena2/200/200',
-    verified: true,
-    matchScore: 0
-  },
-  {
-    id: 'm4',
-    name: 'James Wilson',
-    domain: 'Data Science',
-    experience: '10 Years',
-    company: 'Meta',
-    bio: 'Uncovering patterns in massive datasets using advanced statistical models.',
-    interests: ['Math', 'Coding', 'Analytics'],
-    dnaType: ['Analytical', 'Logical', 'Technical'],
-    avatar: 'https://picsum.photos/seed/james/200/200',
-    verified: false,
-    matchScore: 0
-  },
-  {
-    id: 'm5',
-    name: 'Aisha Gupta',
-    domain: 'Cybersecurity',
-    experience: '9 Years',
-    company: 'CrowdStrike',
-    bio: 'Protecting digital assets from advanced persistent threats.',
-    interests: ['Security', 'Coding', 'Networking'],
-    dnaType: ['Logical', 'Tactical', 'Critical'],
-    avatar: 'https://picsum.photos/seed/aisha/200/200',
-    verified: true,
-    matchScore: 0
-  }
-];
+import { api, MentorMatch } from '@/src/lib/api';
+import { cn } from '@/src/lib/utils';
+import { createPortal } from 'react-dom';
 
 interface MentorshipPageProps {
   dnaData?: {
     strengths: string[];
     learningStyle: string;
   } | null;
+  authToken: string | null;
 }
 
-export const MentorshipPage = ({ dnaData }: MentorshipPageProps) => {
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 }
+};
+
+export const MentorshipPage = ({ authToken }: MentorshipPageProps) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [requests, setRequests] = useState<Record<string, 'pending' | 'accepted'>>({});
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'ai-matched'>('ai-matched');
+  const [mentors, setMentors] = useState<MentorMatch[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // User data for auto-fill
+  const [userData, setUserData] = useState<{ name: string; email: string } | null>(null);
+  
+  // Modal states
+  const [selectedMentor, setSelectedMentor] = useState<MentorMatch | null>(null);
+  const [viewingMentor, setViewingMentor] = useState<MentorMatch | null>(null);
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [requestSuccess, setRequestSuccess] = useState(false);
+  const [message, setMessage] = useState('');
 
-  // Simple Matching Algorithm
-  const scoredMentors = useMemo(() => {
-    return mentors.map(mentor => {
-      let score = 70; // Base score
-
-      if (dnaData) {
-        // Boost based on matching DNA types/strengths
-        dnaData.strengths.forEach(strength => {
-          if (mentor.dnaType.includes(strength)) score += 8;
-        });
-
-        // Boost based on learning style
-        if (mentor.dnaType.includes(dnaData.learningStyle)) score += 10;
+  useEffect(() => {
+    const loadData = async () => {
+      if (!authToken) {
+        setError('Please login to fetch mentors.');
+        return;
       }
+      setIsLoading(true);
+      setError(null);
+      try {
+        const [mentorsRes, userRes] = await Promise.all([
+          api.fetchMatchedMentors(authToken),
+          api.fetchMe(authToken)
+        ]);
+        setMentors(mentorsRes);
+        setUserData({ name: userRes.name, email: userRes.email });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch data.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    void loadData();
+  }, [authToken]);
 
-      // Cap at 99
-      return { ...mentor, matchScore: Math.min(score, 99) };
-    }).sort((a, b) => b.matchScore - a.matchScore);
-  }, [dnaData]);
+  const filteredMentors = useMemo(
+    () =>
+      mentors.filter(
+        (mentor) =>
+          mentor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          mentor.domain.toLowerCase().includes(searchQuery.toLowerCase())
+      ),
+    [mentors, searchQuery]
+  );
 
-  const filteredMentors = scoredMentors.filter(m => {
-    const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          m.domain.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesAI = selectedFilter === 'ai-matched' ? m.matchScore > 85 : true;
-    return matchesSearch && matchesAI;
-  });
+  const [preferredDate, setPreferredDate] = useState('');
+  const [preferredTime, setPreferredTime] = useState('');
 
-  const handleRequest = (id: string) => {
-    setRequests(prev => ({ ...prev, [id]: 'pending' }));
-    // Simulate acceptance
-    setTimeout(() => {
-      setRequests(prev => ({ ...prev, [id]: 'accepted' }));
-    }, 3000);
+  const handleConnect = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!authToken || !selectedMentor || !userData) return;
+
+    setIsRequesting(true);
+    try {
+      await api.requestMentorship(authToken, {
+        student_name: userData.name,
+        student_email: userData.email,
+        mentor_name: selectedMentor.name,
+        mentor_email: selectedMentor.email,
+        message,
+        preferred_slot: `${preferredDate} at ${preferredTime}`
+      });
+      setRequestSuccess(true);
+      setTimeout(() => {
+        setSelectedMentor(null);
+        setRequestSuccess(false);
+        setMessage('');
+        setPreferredDate('');
+        setPreferredTime('');
+      }, 2000);
+    } catch (err) {
+      alert('Failed to send request. Please try again.');
+    } finally {
+      setIsRequesting(false);
+    }
   };
 
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   return (
-    <div className="max-w-7xl mx-auto py-6 md:py-10 px-4 md:px-6 space-y-8 md:space-y-10">
-      {/* Hero Header */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 border-b border-border-light pb-8 md:pb-10">
-        <div className="space-y-2 text-center md:text-left">
-          <div className="flex items-center justify-center md:justify-start gap-2 text-brand-purple">
-             <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
-             <span className="text-[10px] md:text-xs font-mono font-bold uppercase tracking-[0.3em]">AI Synthesis Cluster</span>
-          </div>
-          <Heading as="h1" className="text-3xl md:text-5xl text-text-primary leading-tight">Curated <span className="text-gradient">Mentorship</span></Heading>
-          <Text className="text-text-secondary max-w-2xl text-sm md:text-base">
-            We've analyzed your Learning DNA and career trajectory to map the most compatible nodes for your growth.
-          </Text>
+    <div className="max-w-7xl mx-auto py-8 md:py-12 px-4 md:px-8 space-y-10">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-3">
+           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-pink/5 border border-brand-pink/10 text-brand-pink text-[10px] font-bold uppercase tracking-[0.2em]">
+             <Sparkles className="w-3 h-3" /> Neural Match Active
+           </div>
+           <Heading as="h1" className="text-4xl md:text-5xl">Matched <span className="text-gradient">Mentors</span></Heading>
+           <Text className="text-text-secondary max-w-lg text-lg">
+             Live mentor matches from <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-brand-purple">/mentors/matched</code>.
+           </Text>
         </div>
         
-        <div className="flex bg-gray-100 p-1 rounded-2xl border border-border-light w-full md:w-sm mx-auto md:mx-0">
-           <button 
-             onClick={() => setSelectedFilter('ai-matched')}
-             className={cn(
-               "flex-1 px-4 md:px-6 py-2 rounded-xl text-[10px] md:text-xs font-bold transition-all flex items-center justify-center gap-2",
-               selectedFilter === 'ai-matched' ? "bg-brand-pink text-white shadow-lg" : "text-text-secondary hover:text-text-primary"
-             )}
-           >
-              <Target className="w-3.5 h-3.5" /> <span className="truncate">AI Best Match</span>
-           </button>
-           <button 
-             onClick={() => setSelectedFilter('all')}
-             className={cn(
-               "flex-1 px-4 md:px-6 py-2 rounded-xl text-[10px] md:text-xs font-bold transition-all flex items-center justify-center gap-2",
-               selectedFilter === 'all' ? "bg-brand-pink text-white shadow-lg" : "text-text-secondary hover:text-text-primary"
-             )}
-           >
-              <span>Explore Network</span>
-           </button>
+        <div className="w-full md:w-96 relative group">
+           <div className="absolute inset-0 bg-brand-purple/5 blur-xl group-focus-within:bg-brand-purple/10 transition-all rounded-2xl" />
+           <div className="relative">
+             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary/40" />
+             <input
+               type="text"
+               className="w-full pl-12 pr-4 py-4 rounded-2xl border border-border-light bg-white focus:outline-none focus:ring-2 focus:ring-brand-purple/20 transition-all shadow-sm placeholder:text-text-secondary/40 font-medium"
+               placeholder="Search mentor or domain..."
+               value={searchQuery}
+               onChange={(e) => setSearchQuery(e.target.value)}
+             />
+           </div>
         </div>
       </div>
 
-      {/* Search & Stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 md:gap-8">
-         <div className="lg:col-span-3">
-            <div className="relative group">
-               <Search className="absolute left-5 md:left-6 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-text-secondary/30 group-focus-within:text-brand-pink transition-colors" />
-               <input 
-                 type="text" 
-                 placeholder="Search by name, expertise..." 
-                 className="w-full h-14 md:h-16 bg-white pl-12 md:pl-16 pr-6 rounded-2xl border border-border-light shadow-sm outline-none focus:ring-2 focus:ring-brand-pink/20 text-sm md:text-base text-text-primary placeholder:text-text-secondary/30 transition-all font-medium"
-                 value={searchQuery}
-                 onChange={(e) => setSearchQuery(e.target.value)}
-               />
-            </div>
-         </div>
-         <div className="bg-white flex items-center justify-center p-4 md:p-5 rounded-2xl border border-border-light shadow-sm space-x-6 md:space-x-8">
-            <div className="text-center">
-               <p className="text-[8px] md:text-[9px] text-text-secondary/40 uppercase tracking-widest font-bold">Matched Pools</p>
-               <p className="text-lg md:text-xl font-bold text-text-primary">12</p>
-            </div>
-            <div className="w-px h-8 bg-border-light" />
-            <div className="text-center">
-               <p className="text-[8px] md:text-[9px] text-text-secondary/40 uppercase tracking-widest font-bold">DNA Compatibility</p>
-               <p className="text-lg md:text-xl font-bold text-brand-pink">88%</p>
-            </div>
-         </div>
-      </div>
-
-      {/* Mentors Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-         <AnimatePresence mode="popLayout">
-            {filteredMentors.map((mentor, index) => (
-              <motion.div
-                key={mentor.id}
-                layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-              >
-                <Card className="h-full flex flex-col group hover:shadow-xl transition-all p-0 overflow-hidden bg-white border-border-light">
-                  {/* Top Header Card */}
-                  <div className="p-6 md:p-8 space-y-5 md:space-y-6 flex-1">
-                     <div className="flex justify-between items-start">
-                        <div className="relative">
-                           <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border border-border-light group-hover:border-brand-pink/30 transition-all shadow-md relative z-10">
-                              <img src={mentor.avatar} alt={mentor.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" referrerPolicy="no-referrer" />
-                           </div>
-                           <div className="absolute -top-3 -left-3 w-12 h-12 bg-brand-pink/10 blur-2xl rounded-full group-hover:bg-brand-pink/20 transition-all" />
-                        </div>
-                        
-                        <div className="flex flex-col items-end gap-1">
-                           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600">
-                              <Zap className="w-3 md:w-3.5 h-3 md:h-3.5 fill-current" />
-                              <span className="text-[10px] md:text-xs font-bold font-mono">{mentor.matchScore}%</span>
-                           </div>
-                           {mentor.matchScore > 90 && (
-                             <div className="flex items-center gap-1 text-[8px] md:text-[9px] text-brand-pink font-bold uppercase tracking-widest animate-pulse">
-                                <Sparkles className="w-2.5 h-2.5" /> AI Matched
-                             </div>
-                           )}
-                        </div>
-                     </div>
-
-                     <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                           <h3 className="text-lg md:text-[1.3rem] font-bold text-text-primary group-hover:text-brand-pink transition-colors leading-tight">{mentor.name}</h3>
-                           {mentor.verified && <ShieldCheck className="w-4 h-4 text-brand-pink shrink-0" />}
-                        </div>
-                        <p className="text-[11px] md:text-sm font-semibold text-text-secondary/70">{mentor.domain} at <span className="text-text-primary/80">{mentor.company}</span></p>
-                        <div className="flex items-center gap-4 pt-1.5 md:pt-2">
-                           <span className="flex items-center gap-1.5 text-[8px] md:text-[10px] text-text-secondary/40 uppercase font-mono font-bold"><Briefcase className="w-3 h-3" /> {mentor.experience}</span>
-                           <span className="flex items-center gap-1.5 text-[8px] md:text-[10px] text-text-secondary/40 uppercase font-mono font-bold"><Users className="w-3 h-3" /> 24 Mentees</span>
-                        </div>
-                     </div>
-
-                     <Text className="text-xs md:text-sm line-clamp-2 text-text-secondary leading-relaxed">
-                        {mentor.bio}
-                     </Text>
-
-                     <div className="flex flex-wrap gap-2 pt-2">
-                        {mentor.interests.concat(mentor.dnaType.slice(0, 1)).map((tag) => (
-                           <span key={tag} className="px-2 py-0.5 rounded-lg bg-gray-50 border border-border-light text-[9px] font-bold text-text-secondary/60 uppercase tracking-tight">
-                              {tag}
-                           </span>
-                        ))}
-                     </div>
+      {/* Main Content Grid */}
+      <div className="min-h-[400px]">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 space-y-6">
+             <div className="w-16 h-16 rounded-3xl bg-brand-purple/5 border border-brand-purple/10 flex items-center justify-center animate-pulse">
+                <Users className="w-8 h-8 text-brand-purple" />
+             </div>
+             <Text className="text-lg font-bold text-text-secondary animate-pulse">Scanning the mentor network...</Text>
+          </div>
+        ) : error ? (
+          <Card className="p-12 text-center bg-rose-50 border-rose-100 space-y-6">
+             <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center mx-auto shadow-sm">
+                <ShieldCheck className="w-8 h-8 text-rose-500" />
+             </div>
+             <div className="space-y-2">
+                <Heading as="h3" className="text-rose-900">Network Error</Heading>
+                <Text className="text-rose-700/70">{error}</Text>
+             </div>
+             <Button variant="secondary" className="border-rose-200" onClick={() => window.location.reload()}>Retry Sync</Button>
+          </Card>
+        ) : filteredMentors.length === 0 ? (
+          <Card className="p-20 text-center space-y-8 bg-gray-50/50 border-dashed">
+             <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center mx-auto shadow-lg border border-gray-100">
+                <Search className="w-10 h-10 text-gray-300" />
+             </div>
+             <div className="space-y-3">
+                <Heading as="h2">No Mentors Found</Heading>
+                <Text className="max-w-md mx-auto text-lg text-text-secondary">We couldn't find any mentors matching your current criteria or DNA profile results.</Text>
+             </div>
+             <Button variant="primary" onClick={() => setSearchQuery('')}>Clear Search Filter</Button>
+          </Card>
+        ) : (
+          <motion.div 
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          >
+            {filteredMentors.map((mentor, i) => (
+              <motion.div key={`${mentor.name}-${i}`} variants={itemVariants}>
+                <Card className="group p-8 space-y-6 bg-white border-border-light hover:border-brand-purple/30 transition-all hover:shadow-2xl hover:-translate-y-1 relative overflow-hidden">
+                  {/* Decorative Gradient */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-brand-purple/5 to-transparent rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700" />
+                  
+                  {/* Card Header: Score & Badge */}
+                  <div className="flex items-center justify-between relative z-10">
+                    <div className="flex items-center gap-2">
+                       {i === 0 && mentor.match_score > 50 && (
+                         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-purple text-white text-[9px] font-black uppercase tracking-widest shadow-lg shadow-brand-purple/20">
+                            <Sparkles className="w-3 h-3" /> Best Match
+                         </div>
+                       )}
+                       <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100">
+                          <Zap className="w-3.5 h-3.5 text-emerald-600 fill-current" />
+                          <span className="text-xs font-black text-emerald-700 tracking-tighter">{mentor.match_score}% DNA Match</span>
+                       </div>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-gray-100 border border-white shadow-sm flex items-center justify-center group-hover:bg-brand-purple group-hover:text-white transition-colors cursor-pointer" onClick={() => setViewingMentor(mentor)}>
+                       <Info className="w-4 h-4" />
+                    </div>
                   </div>
 
-                  {/* Actions Area */}
-                  <div className="p-5 md:p-6 border-t border-border-light bg-gray-50/20 grid grid-cols-2 gap-3 mt-auto">
-                     {requests[mentor.id] ? (
-                       <div className={cn(
-                         "col-span-2 py-3 rounded-xl border flex items-center justify-center gap-3 transition-all",
-                         requests[mentor.id] === 'pending' ? "bg-amber-50 border-amber-100 text-amber-600" : "bg-emerald-50 border-emerald-100 text-emerald-600"
-                       )}>
-                          {requests[mentor.id] === 'pending' ? <Clock className="w-4 h-4 animate-spin-slow" /> : <CheckCircle2 className="w-4 h-4" />}
-                          <span className="text-xs font-bold uppercase tracking-wider">{requests[mentor.id] === 'pending' ? 'Pending' : 'Sync Active'}</span>
+                  {/* Mentor Info */}
+                  <div className="space-y-4 relative z-10">
+                    <div className="flex items-center gap-4">
+                       <div className="w-16 h-16 rounded-2xl bg-gradient-premium flex items-center justify-center text-white shadow-lg text-2xl font-display font-bold">
+                          {mentor.name.charAt(0)}
                        </div>
-                     ) : (
-                       <>
-                         <Button 
-                           variant="primary" 
-                           size="sm" 
-                           onClick={() => handleRequest(mentor.id)}
-                           className="text-[10px] md:text-xs group/btn h-11 md:h-12 bg-brand-pink"
-                         >
-                            <span className="truncate">Request Session</span> <UserPlus className="w-3.5 h-3.5 ml-1 md:ml-2 group-hover/btn:scale-110 transition-transform shrink-0" />
-                         </Button>
-                         <Button variant="outline" size="sm" className="text-[10px] md:text-xs border-border-light text-text-primary h-11 md:h-12">
-                            <span>Chat (AI Sync)</span> <MessageSquare className="w-3.5 h-3.5 ml-1 md:ml-2 shrink-0" />
-                         </Button>
-                       </>
-                     )}
-                     <Button variant="ghost" className="col-span-2 text-[10px] md:text-xs h-10 border border-transparent hover:border-border-light hover:bg-gray-100 mt-1 text-text-secondary hover:text-text-primary font-bold uppercase">
-                        View Network Node Profile
-                     </Button>
+                       <div>
+                          <Heading as="h4" className="text-xl group-hover:text-brand-purple transition-colors">{mentor.name}</Heading>
+                          <div className="flex items-center gap-2 text-brand-pink font-bold text-[10px] uppercase tracking-widest mt-1">
+                             <MapPin className="w-3 h-3" /> Expert in {mentor.domain}
+                          </div>
+                       </div>
+                    </div>
+                    <div className="space-y-2">
+                       <Text className="text-sm text-text-secondary leading-relaxed line-clamp-2">
+                          {mentor.experience ? `${mentor.experience} professional experience in ${mentor.domain}.` : `Specialized in neural educational growth and optimization within the ${mentor.domain} sector.`}
+                       </Text>
+                       {mentor.match_score > 30 && (
+                         <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600 bg-emerald-50/50 px-2 py-1 rounded-lg w-fit">
+                            <ShieldCheck className="w-3 h-3" />
+                            {mentor.match_score > 60 ? "Highly compatible with your learning style" : "Matches your practical strengths"}
+                         </div>
+                       )}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="pt-4 border-t border-gray-100 flex items-center gap-3 relative z-10">
+                    <Button 
+                      variant="primary" 
+                      className="flex-[2] h-12 gap-2 shadow-lg shadow-brand-purple/10"
+                      onClick={() => setSelectedMentor(mentor)}
+                    >
+                       <MessageSquare className="w-4 h-4" /> Connect
+                    </Button>
+                    <Button 
+                      variant="secondary" 
+                      className="flex-1 h-12 gap-2 rounded-xl border-gray-200"
+                      onClick={() => setViewingMentor(mentor)}
+                    >
+                       <Info className="w-4 h-4" /> Profile
+                    </Button>
                   </div>
                 </Card>
               </motion.div>
             ))}
-          </AnimatePresence>
-        </div>
+          </motion.div>
+        )}
+      </div>
 
-      {/* Bottom Engagement */}
-      <Card className="bg-brand-pink border-none p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12 relative overflow-hidden group shadow-2xl shadow-brand-pink/20">
-         <div className="absolute inset-0 bg-gradient-to-br from-brand-pink via-brand-pink to-brand-purple opacity-90" />
-         <div className="relative z-10 space-y-6 text-center md:text-left max-w-xl">
-            <h2 className="text-2xl md:text-4xl font-bold text-white leading-tight">Can't find your <span className="underline decoration-white/40">perfect match?</span></h2>
-            <p className="text-white/80 text-sm md:text-base leading-relaxed font-medium">Our neural network is growing daily. Request a specific DNA profile manual match from our academic board cluster.</p>
-            <Button variant="outline" className="bg-white text-brand-pink border-white hover:bg-white/90 px-8 h-12 md:h-14 rounded-2xl font-bold shadow-xl">Request Manual Scan</Button>
-         </div>
-         <div className="relative z-10 shrink-0">
-            <div className="w-32 h-32 md:w-48 md:h-48 bg-white/10 rounded-full blur-[60px] animate-pulse" />
-            <Users className="w-24 h-24 md:w-40 md:h-40 text-white/20 absolute inset-0 m-auto group-hover:scale-110 transition-transform duration-1000" />
-         </div>
-         {/* Decorative elements */}
-         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rotate-45 translate-x-32 -translate-y-32" />
-         <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 -rotate-45 -translate-x-32 translate-y-32" />
-      </Card>
+      {/* Footer Insight */}
+      <motion.div variants={itemVariants} initial="hidden" animate="show" className="pt-8">
+         <Card className="bg-linear-to-r from-brand-purple/5 to-white border-brand-purple/10 p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-6 text-center md:text-left">
+               <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-md border border-brand-purple/10">
+                  <ShieldCheck className="w-8 h-8 text-brand-purple" />
+               </div>
+               <div>
+                  <Heading as="h4">Verified Mentor Network</Heading>
+                  <Text className="text-text-secondary">All mentors are verified and matched based on your cognitive DNA score.</Text>
+               </div>
+            </div>
+            <Button variant="outline" className="shrink-0 border-brand-purple/20 text-brand-purple font-bold">Learn More</Button>
+         </Card>
+      </motion.div>
+
+      {/* Modals rendered via Portals */}
+      {isMounted && createPortal(
+        <>
+          <AnimatePresence>
+            {viewingMentor && (
+              <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-text-primary/60 backdrop-blur-xl"
+                  onClick={() => setViewingMentor(null)}
+                />
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                  className="relative w-full max-w-2xl bg-white rounded-[2rem] shadow-2xl border border-border-light overflow-hidden z-[510]"
+                >
+                  {/* Close Button */}
+                  <button 
+                    onClick={() => setViewingMentor(null)}
+                    className="absolute top-6 right-6 p-2 rounded-full hover:bg-gray-100 text-text-secondary/40 hover:text-text-primary transition-all z-20"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+
+                  <div className="relative h-32 bg-gradient-premium opacity-10" />
+                  
+                  <div className="px-8 pb-10 -mt-16 relative z-10 space-y-8">
+                    <div className="flex flex-col md:flex-row md:items-end gap-6">
+                        <div className="w-32 h-32 rounded-3xl bg-white p-2 shadow-xl border border-gray-50">
+                          <div className="w-full h-full rounded-2xl bg-gradient-premium flex items-center justify-center text-white text-5xl font-display font-bold">
+                              {viewingMentor.name.charAt(0)}
+                          </div>
+                        </div>
+                        <div className="space-y-2 pb-2">
+                          <div className="flex items-center gap-3">
+                              <Heading as="h2" className="text-3xl">{viewingMentor.name}</Heading>
+                              <div className="px-2.5 py-1 rounded-full bg-blue-50 border border-blue-100 flex items-center gap-1.5 text-blue-600">
+                                <CheckCircle2 className="w-3.5 h-3.5 fill-current" />
+                                <span className="text-[10px] font-black uppercase tracking-wider">Verified</span>
+                              </div>
+                          </div>
+                          <div className="flex items-center gap-4 text-text-secondary font-medium">
+                              <div className="flex items-center gap-1.5 text-sm">
+                                <Briefcase className="w-4 h-4 text-brand-purple/50" /> {viewingMentor.domain}
+                              </div>
+                              <div className="flex items-center gap-1.5 text-sm">
+                                <MapPin className="w-4 h-4 text-brand-pink/50" /> Global Network
+                              </div>
+                          </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4 p-6 rounded-2xl bg-gray-50/80 border border-gray-100">
+                        <div className="text-center space-y-1">
+                          <div className="text-brand-purple font-black text-xl">4.9/5</div>
+                          <div className="text-[9px] uppercase font-bold text-text-secondary/60 tracking-widest">Rating</div>
+                        </div>
+                        <div className="text-center space-y-1 border-x border-gray-200">
+                          <div className="text-brand-purple font-black text-xl">500+</div>
+                          <div className="text-[9px] uppercase font-bold text-text-secondary/60 tracking-widest">Students</div>
+                        </div>
+                        <div className="text-center space-y-1">
+                          <div className="text-brand-purple font-black text-xl">{viewingMentor.experience || '5+ Yrs'}</div>
+                          <div className="text-[9px] uppercase font-bold text-text-secondary/60 tracking-widest">Experience</div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-6">
+                          <div className="space-y-3">
+                              <Heading as="h4" className="flex items-center gap-2 text-lg">
+                                <Award className="w-5 h-5 text-brand-purple" /> Expertise & Skills
+                              </Heading>
+                              <div className="flex flex-wrap gap-2">
+                                {(viewingMentor.skills || ['Leadership', 'Problem Solving', 'Strategic Planning']).map(skill => (
+                                  <span key={skill} className="px-3 py-1.5 rounded-xl bg-white border border-gray-100 text-xs font-bold text-text-secondary shadow-sm">
+                                      {skill}
+                                  </span>
+                                ))}
+                              </div>
+                          </div>
+                          <div className="space-y-3">
+                              <Heading as="h4" className="flex items-center gap-2 text-lg">
+                                <BookOpen className="w-5 h-5 text-brand-pink" /> Learning Focus
+                              </Heading>
+                              <Text className="text-sm leading-relaxed text-text-secondary">
+                                Specialized in helping students with {viewingMentor.domain} mastery, focusing on practical application and neural retention strategies.
+                              </Text>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-6">
+                          <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-100 space-y-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white">
+                                    <Zap className="w-4 h-4 fill-current" />
+                                </div>
+                                <Heading as="h4" className="text-emerald-900 text-base">Neural Compatibility</Heading>
+                              </div>
+                              <Text className="text-xs font-medium text-emerald-700 leading-relaxed">
+                                This mentor matches your DNA profile by <span className="font-bold underline">{viewingMentor.match_score}%</span>. Their teaching style is highly effective for your cognitive pathways.
+                              </Text>
+                              <div className="w-full h-1.5 bg-emerald-200 rounded-full overflow-hidden">
+                                <motion.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${viewingMentor.match_score}%` }}
+                                  transition={{ delay: 0.5, duration: 1 }}
+                                  className="h-full bg-emerald-600 rounded-full shadow-lg"
+                                />
+                              </div>
+                          </div>
+                          <Button 
+                            variant="primary" 
+                            className="w-full h-14 text-lg shadow-xl shadow-brand-purple/20"
+                            onClick={() => {
+                              setSelectedMentor(viewingMentor);
+                              setViewingMentor(null);
+                            }}
+                          >
+                              Book a Neural Session
+                          </Button>
+                        </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {selectedMentor && (
+              <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-text-primary/60 backdrop-blur-xl"
+                  onClick={() => !isRequesting && setSelectedMentor(null)}
+                />
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                  className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-border-light overflow-hidden z-[610]"
+                >
+                  <div className="p-8 space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <Heading as="h3">Connect with Mentor</Heading>
+                          <Text className="text-text-secondary">Send a neural connection request to {selectedMentor.name}.</Text>
+                        </div>
+                        <div className="w-12 h-12 rounded-2xl bg-brand-purple/5 flex items-center justify-center text-brand-purple">
+                          <MessageSquare className="w-6 h-6" />
+                        </div>
+                    </div>
+
+                    {requestSuccess ? (
+                      <div className="py-12 flex flex-col items-center justify-center space-y-4 text-center">
+                          <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-inner">
+                            <ShieldCheck className="w-8 h-8" />
+                          </div>
+                          <Heading as="h4" className="text-emerald-700">Request Sent!</Heading>
+                          <Text className="text-emerald-600/70 font-medium">Your mentorship request has been beamed to {selectedMentor.name}.</Text>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleConnect} className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-text-secondary/60 ml-1">Your Name</label>
+                                <input 
+                                  type="text" 
+                                  readOnly 
+                                  value={userData?.name || ''} 
+                                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-border-light text-sm font-medium text-text-secondary cursor-not-allowed"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-text-secondary/60 ml-1">Mentor</label>
+                                <input 
+                                  type="text" 
+                                  readOnly 
+                                  value={selectedMentor.name} 
+                                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-border-light text-sm font-medium text-brand-purple cursor-not-allowed"
+                                />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-text-secondary/60 ml-1">Preferred Date</label>
+                                <div className="relative">
+                                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-purple" />
+                                  <input 
+                                    type="date"
+                                    required
+                                    value={preferredDate}
+                                    onChange={(e) => setPreferredDate(e.target.value)}
+                                    className="w-full pl-9 pr-4 py-3 rounded-xl bg-white border border-border-light text-xs font-bold text-text-primary focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                                  />
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold uppercase tracking-widest text-text-secondary/60 ml-1">Preferred Time</label>
+                                <div className="relative">
+                                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-pink" />
+                                  <input 
+                                    type="time"
+                                    required
+                                    value={preferredTime}
+                                    onChange={(e) => setPreferredTime(e.target.value)}
+                                    className="w-full pl-9 pr-4 py-3 rounded-xl bg-white border border-border-light text-xs font-bold text-text-primary focus:ring-2 focus:ring-brand-purple/20 transition-all"
+                                  />
+                                </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-text-secondary/60 ml-1">Message</label>
+                            <textarea 
+                              required
+                              rows={4}
+                              value={message}
+                              onChange={(e) => setMessage(e.target.value)}
+                              placeholder="Tell the mentor about your goals and what you'd like to learn..."
+                              className="w-full px-4 py-3 rounded-xl border border-border-light bg-white text-sm font-medium focus:ring-2 focus:ring-brand-purple/20 focus:border-brand-purple/30 transition-all resize-none"
+                            />
+                          </div>
+
+                          <div className="pt-4 flex items-center gap-3">
+                            <Button 
+                              type="button" 
+                              variant="secondary" 
+                              className="flex-1 h-12 border-gray-200"
+                              onClick={() => setSelectedMentor(null)}
+                              disabled={isRequesting}
+                            >
+                                Cancel
+                            </Button>
+                            <Button 
+                              type="submit" 
+                              variant="primary" 
+                              className="flex-[2] h-12 gap-2 shadow-lg shadow-brand-purple/20"
+                              disabled={isRequesting}
+                            >
+                                {isRequesting ? "Sending..." : <><Zap className="w-4 h-4 fill-current" /> Send Request</>}
+                            </Button>
+                          </div>
+                      </form>
+                    )}
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+        </>,
+        document.body
+      )}
     </div>
   );
 };

@@ -43,12 +43,12 @@ const Burette = ({ drops }: { drops: number }) => {
         <cylinderGeometry args={[0.08, 0.08, 4, 32]} />
         <meshPhysicalMaterial 
           transparent 
-          opacity={0.3} 
-          roughness={0} 
-          transmission={0.95}
-          thickness={0.1}
+          opacity={0.4} 
+          roughness={0.1} 
+          transmission={1}
+          thickness={0.2}
           envMapIntensity={2}
-          color="#ffffff" 
+          color="#f8fafc" 
         />
       </mesh>
       {/* Liquid inside */}
@@ -87,18 +87,18 @@ const Flask = ({ color }: { color: string }) => {
         <cylinderGeometry args={[0.12, 0.7, 1.2, 32]} />
         <meshPhysicalMaterial 
           transparent 
-          opacity={0.3} 
-          roughness={0} 
-          transmission={0.9}
-          thickness={0.05}
-          color="#ffffff" 
+          opacity={0.5} 
+          roughness={0.1} 
+          transmission={1}
+          thickness={0.5}
+          color="#e0f2fe" 
         />
       </mesh>
       {/* Liquid Volume */}
       <Float speed={2} rotationIntensity={0.1} floatIntensity={0.1}>
         <mesh position={[0, 0.3, 0]}>
           <cylinderGeometry args={[0.45, 0.65, 0.5, 32]} />
-          <meshStandardMaterial color={color} roughness={0} transparent opacity={0.8} />
+          <meshStandardMaterial color={color} roughness={0.1} metalness={0.1} transparent opacity={0.9} />
         </mesh>
       </Float>
     </group>
@@ -165,8 +165,9 @@ export const AcidBaseTitration = ({ onCaptureResults }: { onCaptureResults: (res
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-full gap-8 p-6 bg-gray-50/50">
-      <div className="flex-1 min-h-[500px] border border-border-light rounded-[2.5rem] bg-white relative overflow-hidden shadow-2xl">
+    <div className="h-full w-full relative bg-white overflow-hidden">
+      {/* Immersive 3D Canvas */}
+      <div className="absolute inset-0">
         <Canvas shadows gl={{ antialias: true }}>
           <Suspense fallback={null}>
             <Environment preset="studio" />
@@ -174,7 +175,7 @@ export const AcidBaseTitration = ({ onCaptureResults }: { onCaptureResults: (res
             <pointLight position={[10, 10, 10]} intensity={1} />
             <spotLight position={[0, 10, 0]} intensity={0.5} castShadow />
             
-            <group position={[0, 0, 0]} scale={1.2}>
+            <group position={[0, 0.5, 0]} scale={1.4}>
               <Burette drops={drops} />
               <Flask color={getSolutionColor()} />
               <Drop active={isTitrating} />
@@ -183,85 +184,96 @@ export const AcidBaseTitration = ({ onCaptureResults }: { onCaptureResults: (res
 
             <ContactShadows position={[0, -2.5, 0]} opacity={0.4} scale={10} blur={2} far={4} />
             <OrbitControls makeDefault minPolarAngle={Math.PI/6} maxPolarAngle={Math.PI/2} enableDamping />
-            <PerspectiveCamera makeDefault position={[5, 2, 8]} fov={35} />
+            <PerspectiveCamera makeDefault position={[6, 2, 8]} fov={30} />
           </Suspense>
         </Canvas>
+      </div>
 
-        {/* HUD UI overlay */}
-        <div className="absolute top-8 left-8 p-6 bg-white/90 backdrop-blur-xl border border-border-light rounded-3xl z-10 w-52 shadow-xl">
-           <Text className="text-[10px] uppercase font-bold tracking-[0.2em] text-text-secondary mb-3">pH Digital Live</Text>
-           <div className="text-4xl font-mono font-bold text-text-primary">
+      {/* Floating HUD: Telemetry (Top Left) */}
+      <div className="absolute top-6 left-6 flex flex-col gap-4 pointer-events-none">
+        <motion.div 
+          initial={{ x: -20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          className="p-5 bg-white/80 backdrop-blur-md border border-border-light rounded-2xl w-44 shadow-lg ring-1 ring-black/5"
+        >
+           <Text className="text-[9px] uppercase font-bold tracking-[0.2em] text-text-secondary/60 mb-2">pH Digital Live</Text>
+           <div className="text-3xl font-mono font-bold text-text-primary tracking-tighter">
               {endpointReached ? '11.4' : (1 + (drops / 50)).toFixed(1)}
            </div>
-           <div className="mt-6 pt-4 border-t border-gray-100 flex items-center gap-3">
-              <div className={cn("w-3 h-3 rounded-full shadow-sm", isTitrating ? "bg-emerald-500 animate-pulse" : "bg-gray-200")} />
-              <span className="text-[10px] uppercase font-bold text-text-secondary tracking-widest">{isTitrating ? 'Reacting...' : 'System Ready'}</span>
+           <div className="mt-4 pt-3 border-t border-gray-100/50 flex items-center gap-2">
+              <div className={cn("w-2.5 h-2.5 rounded-full", isTitrating ? "bg-emerald-500 animate-pulse" : "bg-gray-300")} />
+              <span className="text-[9px] uppercase font-bold text-text-secondary/60 tracking-widest">{isTitrating ? 'Reacting...' : 'System Ready'}</span>
            </div>
+        </motion.div>
+
+        <motion.div 
+          initial={{ x: -20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="p-5 bg-white/80 backdrop-blur-md border border-border-light rounded-2xl w-44 shadow-lg ring-1 ring-black/5"
+        >
+           <Text className="text-[9px] uppercase font-bold tracking-[0.2em] text-text-secondary/60 mb-2">Measured Titrant</Text>
+           <div className="text-3xl font-mono font-bold text-text-primary tracking-tighter">
+              {(drops / 10).toFixed(2)} <span className="text-xs text-text-secondary/40 font-sans font-medium uppercase">mL</span>
+           </div>
+        </motion.div>
+      </div>
+
+      {/* Floating HUD: Controls (Bottom Left) */}
+      <div className="absolute bottom-6 left-6 flex flex-col gap-3 w-44">
+        <Button 
+          variant="primary" 
+          size="sm"
+          className={cn("w-full h-12 rounded-xl gap-2 text-[9px] font-bold tracking-[0.2em] uppercase shadow-lg", isTitrating ? "bg-rose-500 hover:bg-rose-600" : "bg-brand-pink")}
+          onClick={() => setIsTitrating(!isTitrating)}
+          disabled={endpointReached}
+        >
+           {isTitrating ? <><RotateCcw className="w-4 h-4" /> Stop</> : <><Play className="w-4 h-4 fill-current" /> Start Drops</>}
+        </Button>
+        <Button 
+          variant="secondary" 
+          size="sm"
+          className="w-full h-10 rounded-xl gap-2 border-gray-200 hover:bg-white text-[9px] font-bold uppercase tracking-widest text-text-secondary bg-white/50 backdrop-blur-sm"
+          onClick={() => {
+            setDrops(0);
+            setEndpointReached(false);
+            setIsTitrating(false);
+          }}
+        >
+           <RotateCcw className="w-3.5 h-3.5" /> Clean Apparatus
+        </Button>
+      </div>
+
+      {/* Lab Note Tip (Bottom Right) */}
+      <div className="absolute bottom-6 right-6 max-w-[240px]">
+        <div className="p-4 bg-white/60 backdrop-blur-md border border-border-light rounded-2xl shadow-sm">
+           <p className="text-[9px] text-text-secondary leading-relaxed font-bold opacity-80 italic">
+              Tip: Observe the color change from clear to persistent light pink/purple for the most accurate titration endpoint.
+           </p>
         </div>
       </div>
 
-      <div className="w-full lg:w-80 flex flex-col gap-6">
-        <Card className="p-8 space-y-8 bg-white border-border-light shadow-xl">
-           <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                 <Text className="text-[10px] uppercase font-bold tracking-widest text-text-secondary">Measured Titrant</Text>
-                 <Droplets className="w-5 h-5 text-brand-pink" />
-              </div>
-              <div className="text-4xl font-mono font-bold text-text-primary leading-none">{(drops / 10).toFixed(2)} <span className="text-sm text-text-secondary font-sans font-medium uppercase ml-1">mL</span></div>
-           </div>
-
-           <div className="space-y-4">
-              <Button 
-                variant="primary" 
-                className={cn("w-full h-16 rounded-2xl gap-3 text-xs font-bold tracking-[0.2em] uppercase transition-all shadow-xl", isTitrating ? "bg-rose-500 hover:bg-rose-600 shadow-rose-200" : "bg-brand-pink shadow-brand-pink/20")}
-                onClick={() => setIsTitrating(!isTitrating)}
-                disabled={endpointReached}
-              >
-                 {isTitrating ? <><RotateCcw className="w-5 h-5" /> Cut Flow</> : <><Play className="w-5 h-5 fill-current" /> Start Drops</>}
-              </Button>
-              <Button 
-                variant="secondary" 
-                className="w-full h-14 rounded-2xl gap-3 border-gray-200 hover:bg-gray-50 font-bold uppercase tracking-widest text-[10px]"
-                onClick={() => {
-                  setDrops(0);
-                  setEndpointReached(false);
-                  setIsTitrating(false);
-                }}
-              >
-                 <RotateCcw className="w-5 h-5" /> Clean Apparatus
-              </Button>
-           </div>
-        </Card>
-
-        <AnimatePresence>
-          {endpointReached && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-8 rounded-[2rem] border border-emerald-100 bg-emerald-50 shadow-lg shadow-emerald-500/5"
-            >
-               <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm">
-                    <Info className="w-6 h-6 text-emerald-500" />
-                  </div>
-                  <h5 className="text-emerald-700 font-bold uppercase tracking-widest text-xs">Synthesis Result</h5>
-               </div>
-               <p className="text-sm text-emerald-800 leading-relaxed font-medium">
-                  Endpoint reached at accurately <strong>{(drops/10).toFixed(2)}mL</strong>. The solution has stabilized at a basic pH of 11.4.
-               </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <Card className="p-6 bg-brand-purple/5 border-brand-purple/10 flex items-start gap-4 shadow-sm">
-           <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-sm border border-brand-purple/10">
-              <Info className="w-6 h-6 text-brand-purple" />
-           </div>
-           <p className="text-[10px] text-text-secondary leading-relaxed font-bold">
-              Tip: Observe the color change from clear to persistent light pink/purple for the most accurate titration endpoint.
-           </p>
-        </Card>
-      </div>
+      {/* Success Notification */}
+      <AnimatePresence>
+        {endpointReached && (
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-8 rounded-3xl border border-emerald-100 bg-white/90 backdrop-blur-2xl shadow-2xl text-center max-w-xs z-50 ring-1 ring-emerald-500/20"
+          >
+             <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4 border border-emerald-100">
+               <Info className="w-6 h-6 text-emerald-500" />
+             </div>
+             <h5 className="text-emerald-700 font-bold uppercase tracking-[0.2em] text-xs mb-2">Sync Complete</h5>
+             <p className="text-xs text-text-secondary leading-relaxed font-medium">
+                Endpoint reached at <strong>{(drops/10).toFixed(2)}mL</strong>. Neural bridge established.
+             </p>
+             <Button variant="outline" size="sm" className="mt-6 w-full border-emerald-200 text-emerald-600 hover:bg-emerald-50 font-bold text-[9px] uppercase tracking-widest" onClick={() => setEndpointReached(false)}>
+                Acknowledge
+             </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BookOpen } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { PageTransition, NeuralLoading } from './components/DesignSystem/Transitions';
@@ -17,14 +17,14 @@ import { CareerRoadmap } from './components/Roadmap/CareerRoadmap';
 import { VirtualLab } from './components/Lab/VirtualLab';
 import { MentorshipPage } from './components/Mentorship/MentorshipPage';
 import { SettingsPage } from './components/Settings/SettingsPage';
-import { Heading, Text } from './components/DesignSystem/Typography';
-import { Button } from './components/DesignSystem/Button';
-import { Input } from './components/DesignSystem/Input';
-import { Card } from './components/DesignSystem/Card';
+import { Text } from './components/DesignSystem/Typography';
 import { CourseView } from './components/Course/CourseView';
+import { CoursesCatalog } from './components/Course/CoursesCatalog';
+import { api, RoadmapResponse, UserCourse, UserProfile } from './lib/api';
+import { MySessionsPage } from './components/Mentorship/MySessionsPage';
 
 export default function App() {
-  const [view, setView] = useState<'landing' | 'dashboard' | 'login' | 'signup' | 'quiz' | 'roadmap' | 'lab' | 'network' | 'settings' | 'courses'>('landing');
+  const [view, setView] = useState<'landing' | 'dashboard' | 'login' | 'signup' | 'quiz' | 'roadmap' | 'lab' | 'network' | 'settings' | 'courses' | 'course-player' | 'sessions'>('landing');
   const [showTour, setShowTour] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [userLevel, setUserLevel] = useState<'School' | 'Undergraduate'>('Undergraduate');
@@ -35,6 +35,27 @@ export default function App() {
     learningStyle: string;
     strengths: string[];
   } | null>(null);
+  const [authToken, setAuthToken] = useState<string | null>(() => localStorage.getItem('auth_token'));
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [latestRoadmap, setLatestRoadmap] = useState<RoadmapResponse | null>(null);
+  const [myCourses, setMyCourses] = useState<UserCourse[]>([]);
+  const [activeCourse, setActiveCourse] = useState<UserCourse | null>(null);
+  const [isCoursesLoading, setIsCoursesLoading] = useState(false);
+  const [coursesError, setCoursesError] = useState<string | null>(null);
+  const appViews = new Set([
+    'landing',
+    'dashboard',
+    'login',
+    'signup',
+    'quiz',
+    'roadmap',
+    'lab',
+    'network',
+    'settings',
+    'courses',
+    'course-player',
+    'sessions',
+  ]);
 
   const goToDashboard = (resultsOrRole?: any) => {
     if (resultsOrRole && typeof resultsOrRole === 'object') {
@@ -61,6 +82,58 @@ export default function App() {
   const goToLogin = () => setView('login');
   const goToSignup = () => setView('signup');
   const goToLanding = () => setView('landing');
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!authToken) return;
+      try {
+        const profile = await api.fetchMe(authToken);
+        setCurrentUser(profile);
+        const roadmapResponse = await api.fetchLatestRoadmap(authToken);
+        if ('roadmap' in roadmapResponse && roadmapResponse.roadmap === null) {
+          setLatestRoadmap(null);
+        } else {
+          setLatestRoadmap(roadmapResponse as RoadmapResponse);
+        }
+      } catch {
+        setCurrentUser(null);
+        setLatestRoadmap(null);
+      }
+    };
+    loadProfile();
+  }, [authToken, view]);
+
+  useEffect(() => {
+    const loadCourses = async () => {
+      if (!authToken) return;
+      setIsCoursesLoading(true);
+      setCoursesError(null);
+      try {
+        const response = await api.fetchMyCourses(authToken);
+        setMyCourses(response.courses);
+      } catch (err) {
+        setCoursesError(err instanceof Error ? err.message : 'Failed to load courses.');
+      } finally {
+        setIsCoursesLoading(false);
+      }
+    };
+    loadCourses();
+  }, [authToken, view]);
+
+  const refreshCourses = async () => {
+    if (!authToken) return;
+    setIsCoursesLoading(true);
+    setCoursesError(null);
+    try {
+      const response = await api.fetchMyCourses(authToken);
+      setMyCourses(response.courses);
+    } catch (err) {
+      setCoursesError(err instanceof Error ? err.message : 'Failed to load courses.');
+    } finally {
+      setIsCoursesLoading(false);
+    }
+  };
+
   const goToQuiz = () => setView('quiz');
   const goToRoadmap = () => setView('roadmap');
 
@@ -69,16 +142,42 @@ export default function App() {
     else setView(v as any);
   };
 
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '');
+    if (!hash || !appViews.has(hash)) return;
+    setView(hash as typeof view);
+  }, []);
+
+  useEffect(() => {
+    const nextHash = `#${view}`;
+    if (window.location.hash !== nextHash) {
+      window.history.replaceState(null, '', nextHash);
+    }
+    
+    // Auto-redirect if already logged in and on landing/login/signup
+    if (authToken && (view === 'landing' || view === 'login' || view === 'signup')) {
+      setView('dashboard');
+    }
+  }, [view, authToken]);
+
   if (view === 'landing') {
     return <LandingPage onEnterApp={goToLogin} />;
   }
 
   if (view === 'login') {
-    return <LoginPage onSwitch={goToSignup} onLogin={goToDashboard} />;
+    return <LoginPage onSwitch={goToSignup} onLogin={(token) => {
+      localStorage.setItem('auth_token', token);
+      setAuthToken(token);
+      goToDashboard();
+    }} />;
   }
 
   if (view === 'signup') {
-    return <SignupPage onSwitch={goToLogin} onSignup={(level) => goToAssessment(level)} />;
+    return <SignupPage onSwitch={goToLogin} onSignup={(token, level) => {
+      localStorage.setItem('auth_token', token);
+      setAuthToken(token);
+      goToAssessment(level);
+    }} />;
   }
 
   const renderDashboardView = () => {
@@ -86,12 +185,24 @@ export default function App() {
       case 'dashboard':
         return (
           <PageTransition key="dashboard">
-            <div className="flex justify-between items-center mb-8">
-              <Button variant="ghost" onClick={goToLanding} size="sm" className="gap-2">
-                 ← Log Out
-              </Button>
-            </div>
-            <DashboardOverview onStartQuiz={goToQuiz} dnaData={dnaData} onNavigate={handleNavigate} />
+            <DashboardOverview
+              onStartQuiz={goToQuiz}
+              dnaData={dnaData}
+              onNavigate={handleNavigate}
+              userName={currentUser?.name}
+              roadmapModules={
+                latestRoadmap
+                  ? latestRoadmap.roadmap.phases.flatMap((phase, phaseIndex) =>
+                      phase.modules.map((module, moduleIndex) => ({
+                        id: `${phaseIndex}-${moduleIndex}`,
+                        title: module,
+                        progress: 0,
+                        status: 'Generated',
+                      }))
+                    )
+                  : []
+              }
+            />
             
 
           </PageTransition>
@@ -99,13 +210,13 @@ export default function App() {
       case 'quiz':
         return (
           <PageTransition key="quiz">
-            <QuizInterface onComplete={goToDashboard} userLevel={userLevel} />
+            <QuizInterface onComplete={goToDashboard} userLevel={userLevel} authToken={authToken} />
           </PageTransition>
         );
       case 'roadmap':
         return (
           <PageTransition key="roadmap">
-            <CareerRoadmap />
+            <CareerRoadmap authToken={authToken} />
           </PageTransition>
         );
       case 'lab':
@@ -117,38 +228,68 @@ export default function App() {
       case 'network':
         return (
           <PageTransition key="network">
-            <MentorshipPage dnaData={dnaData} />
+            <MentorshipPage dnaData={dnaData} authToken={authToken} />
           </PageTransition>
         );
       case 'courses':
         return (
           <PageTransition key="courses">
-            <div className="space-y-8">
-               <Heading as="h1">Available <span className="text-gradient">Courses</span></Heading>
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {[
-                    { id: 'c1', title: 'Neural Architecture 101', phase: 'Phase 1', desc: 'Understanding the fundamentals of neural sync.' },
-                    { id: 'c2', title: 'Quantum Logic Systems', phase: 'Phase 2', desc: 'Advanced logic gates and quantum computing basics.' },
-                    { id: 'c3', title: 'Bio-Digital Interface Design', phase: 'Phase 3', desc: 'Designing interfaces for biological data streams.' },
-                  ].map(course => (
-                    <Card key={course.id} className="p-8 space-y-4 hover:shadow-xl transition-all cursor-pointer border-border-light bg-white" onClick={() => setView('roadmap')}>
-                       <div className="w-12 h-12 rounded-xl bg-brand-pink/5 flex items-center justify-center border border-brand-pink/10">
-                          <BookOpen className="w-6 h-6 text-brand-pink" />
-                       </div>
-                       <div>
-                          <Text className="text-[10px] font-bold text-brand-pink uppercase tracking-widest">{course.phase}</Text>
-                          <Heading as="h3" className="text-xl">{course.title}</Heading>
-                       </div>
-                       <Text className="text-sm text-text-secondary">{course.desc}</Text>
-                       <Button variant="outline" className="w-full">View Details</Button>
-                    </Card>
-                  ))}
-               </div>
-            </div>
+            <CoursesCatalog
+              courses={myCourses}
+              isLoading={isCoursesLoading}
+              error={coursesError}
+              onOpenRoadmap={() => setView('roadmap')}
+              onOpenCourse={(course) => {
+                setActiveCourse(course);
+                setView('course-player');
+              }}
+              authToken={authToken}
+              onRefreshCourses={refreshCourses}
+            />
           </PageTransition>
         );
+      case 'course-player': {
+        if (!activeCourse) {
+          return (
+            <PageTransition key="course-player-empty">
+              <Text className="text-text-secondary">No course selected.</Text>
+            </PageTransition>
+          );
+        }
+
+        const phaseTitle =
+          latestRoadmap?.roadmap.phases.find((phase) => phase.modules.includes(activeCourse.module_name))?.title ||
+          'Learning Phase';
+        const lessons = activeCourse.course.lessons.map((lesson, idx) => ({
+          id: `${activeCourse.id}-${idx}`,
+          title: lesson.content?.slice(0, 40) || `${lesson.type} lesson`,
+          type: lesson.type === 'quiz' ? 'quiz' : lesson.type === 'video' ? 'video' : 'reading',
+          duration: '10m',
+          completed: false,
+          content: lesson.content,
+          questions: lesson.questions ?? null,
+        }));
+
+        return (
+          <PageTransition key={`course-player-${activeCourse.id}`}>
+            <CourseView
+              courseTitle={activeCourse.course.title || activeCourse.module_name}
+              phaseTitle={phaseTitle}
+              description={`Generated from module ${activeCourse.module_name}`}
+              lessons={lessons}
+              onBack={() => setView('courses')}
+            />
+          </PageTransition>
+        );
+      }
 
 
+      case 'sessions':
+        return (
+          <PageTransition key="sessions">
+            <MySessionsPage authToken={authToken} onNavigate={handleNavigate} />
+          </PageTransition>
+        );
       case 'settings':
         return (
           <PageTransition key="settings">
@@ -187,7 +328,12 @@ export default function App() {
           </div>
         </div>
       ) : (
-        <DashboardLayout currentView={view} onNavigate={handleNavigate}>
+        <DashboardLayout
+          currentView={view}
+          onNavigate={handleNavigate}
+          userName={currentUser?.name}
+          userEmail={currentUser?.email}
+        >
           <AnimatePresence mode="wait">
             {renderDashboardView()}
           </AnimatePresence>

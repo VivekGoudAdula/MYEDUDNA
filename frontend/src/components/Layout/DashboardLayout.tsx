@@ -13,7 +13,8 @@ import {
   GraduationCap,
   LogOut,
   TrendingUp,
-  BarChart3
+  BarChart3,
+  Video
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -24,17 +25,22 @@ const navItems = [
   { icon: GraduationCap, label: 'Courses', id: 'courses' },
   { icon: FlaskConical, label: 'Labs', id: 'lab' },
   { icon: Users, label: 'Mentors', id: 'network' },
+  { icon: Video, label: 'Sessions', id: 'sessions' },
   { icon: Settings, label: 'Profile', id: 'settings' },
 ];
 
 export const DashboardLayout = ({ 
   children, 
   currentView = 'dashboard',
-  onNavigate
+  onNavigate,
+  userName,
+  userEmail,
 }: { 
   children: React.ReactNode;
   currentView?: string;
   onNavigate?: (view: string) => void;
+  userName?: string;
+  userEmail?: string;
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -50,7 +56,7 @@ export const DashboardLayout = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsSidebarOpen(false)}
-            className="fixed inset-0 bg-black/50 z-[60] lg:hidden backdrop-blur-sm"
+            className="fixed inset-0 bg-black/50 z-60 lg:hidden backdrop-blur-sm"
           />
         )}
       </AnimatePresence>
@@ -63,20 +69,17 @@ export const DashboardLayout = ({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -300, opacity: 0 }}
             className={cn(
-              "fixed lg:static inset-y-0 left-0 w-72 bg-white border-r border-border-light flex flex-col z-[70] h-full overflow-y-auto shadow-xl lg:shadow-sm"
+              "fixed lg:static inset-y-0 left-0 w-64 bg-white border-r border-border-light flex flex-col z-70 h-full overflow-y-auto shadow-xl lg:shadow-sm"
             )}
           >
             <div className="p-8 flex items-center justify-between lg:justify-start gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-premium flex items-center justify-center shadow-lg">
-                  <Dna className="text-white w-6 h-6" />
-                </div>
-                <span 
-                  className="text-xl font-display font-bold tracking-tight text-text-primary italic cursor-pointer"
+                <img 
+                  src="/image.png" 
+                  alt="EduDNA Logo" 
+                  className="h-16 w-auto cursor-pointer"
                   onClick={() => onNavigate?.('landing')}
-                >
-                  Edu<span className="text-gradient font-bold">DNA</span>
-                </span>
+                />
               </div>
               <button 
                 onClick={() => setIsSidebarOpen(false)}
@@ -153,14 +156,18 @@ export const DashboardLayout = ({
               <Bell className="w-5 h-5" />
               <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-brand-pink rounded-full border-2 border-white shadow-sm" />
             </button>
-            <div className="h-8 w-[1px] bg-border-light mx-1 md:mx-2" />
+            <div className="h-8 w-px bg-border-light mx-1 md:mx-2" />
             
             <div id="user-profile" className="flex items-center gap-2 md:gap-3 pl-2 pr-1 py-1 rounded-full border border-border-light bg-gray-50/50">
               <div className="text-right hidden sm:block">
-                <h4 className="text-[10px] md:text-xs font-bold text-text-primary leading-none mb-1">Alex Rivera</h4>
-                <p className="text-[8px] text-text-secondary font-mono tracking-tighter uppercase leading-none">PREMIUM MEMBER</p>
+                <h4 className="text-[10px] md:text-xs font-bold text-text-primary leading-none mb-1">
+                  {userName || 'New User'}
+                </h4>
+                <p className="text-[8px] text-text-secondary font-mono tracking-tighter uppercase leading-none">
+                  {userEmail || 'Complete your profile'}
+                </p>
               </div>
-              <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-gradient-to-tr from-brand-purple to-brand-pink p-[1px] shadow-sm cursor-pointer hover:scale-105 transition-transform">
+              <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-linear-to-tr from-brand-purple to-brand-pink p-px shadow-sm cursor-pointer hover:scale-105 transition-transform">
                 <div className="w-full h-full rounded-full bg-white border border-border-light overflow-hidden">
                    <img src="https://picsum.photos/seed/edu/100/100" alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 </div>

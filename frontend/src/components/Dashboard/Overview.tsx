@@ -45,19 +45,6 @@ const activityData = [
   { name: 'Sun', value: 1100 },
 ];
 
-const fallbackDnaData = [
-  { subject: 'Logic', A: 80, fullMark: 100 },
-  { subject: 'Memory', A: 65, fullMark: 100 },
-  { subject: 'Conceptual', A: 90, fullMark: 100 },
-  { subject: 'Practical', A: 70, fullMark: 100 },
-];
-
-const currentModules = [
-  { id: 1, title: 'Introduction to Neural Synapse', progress: 75, status: 'Active' },
-  { id: 2, title: 'Quantum Mechanics: Part 2', progress: 30, status: 'Active' },
-  { id: 3, title: 'Advanced Genetic Mapping', progress: 10, status: 'Upcoming' },
-];
-
 const containerVariants = {
   hidden: { opacity: 0 },
   show: {
@@ -76,7 +63,9 @@ const itemVariants = {
 export const DashboardOverview = ({ 
   onStartQuiz, 
   dnaData,
-  onNavigate
+  onNavigate,
+  userName,
+  roadmapModules = [],
 }: { 
   onStartQuiz?: () => void,
   dnaData?: {
@@ -86,32 +75,36 @@ export const DashboardOverview = ({
     learningStyle: string;
     strengths: string[];
   } | null,
-  onNavigate?: (view: string) => void
+  onNavigate?: (view: string) => void,
+  userName?: string,
+  roadmapModules?: Array<{ id: string; title: string; progress: number; status: string }>
 }) => {
   // Use DNA data to personalize or fallback to defaults
-  const learningStyle = dnaData?.learningStyle || "Analytical / Versatile";
-  const accuracy = dnaData?.accuracy || 84;
-  const strengths = dnaData?.strengths || ["Neural Architecture", "Quantum Logic"];
+  const learningStyle = dnaData?.learningStyle || "Not assessed";
+  const accuracy = dnaData?.accuracy ?? 0;
+  const strengths = dnaData?.strengths?.length ? dnaData.strengths : ["No strengths yet"];
   
   const cognitiveData = dnaData ? [
     { subject: 'Logic', A: (dnaData.categories.logic?.correct || 0) * 25, fullMark: 100 },
     { subject: 'Memory', A: (dnaData.categories.memory?.correct || 0) * 100, fullMark: 100 },
     { subject: 'Conceptual', A: (dnaData.categories.conceptual?.correct || 0) * 33, fullMark: 100 },
     { subject: 'Practical', A: (dnaData.categories.practical?.correct || 0) * 50, fullMark: 100 },
-  ] : fallbackDnaData;
+  ] : [
+    { subject: 'Logic', A: 0, fullMark: 100 },
+    { subject: 'Memory', A: 0, fullMark: 100 },
+    { subject: 'Conceptual', A: 0, fullMark: 100 },
+    { subject: 'Practical', A: 0, fullMark: 100 },
+  ];
 
   const greetingSub = dnaData 
     ? `Based on your DNA, you learn best through ${learningStyle.toLowerCase()} examples.`
-    : `Your neuro-pathway optimization is at ${accuracy}%.`;
+    : `Complete your first DNA assessment to unlock personalized insights.`;
 
   // Filter recommendations based on level or dna
   const recommendations = dnaData ? [
     { title: `Mastering ${learningStyle.split('/')[0]} Data`, time: '15 min module', icon: Zap },
     { title: `${strengths[0]} Advanced Path`, time: 'Skill Verification', icon: Rocket },
-  ] : [
-    { title: 'Neural Backprop: Advanced', time: '12 min read', icon: Zap },
-    { title: 'DNA Sequencing Ethics', time: 'Quiz • 10 Questions', icon: Rocket },
-  ];
+  ] : [];
 
   return (
     <motion.div 
@@ -121,20 +114,17 @@ export const DashboardOverview = ({
       className="space-y-8 pb-12"
     >
       {/* Welcome Section */}
-      <motion.div variants={itemVariants} className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <motion.div variants={itemVariants} className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
         <div>
-          <Text className="uppercase tracking-[0.2em] font-bold text-brand-pink mb-2 flex items-center gap-2 text-[10px]">
-            <Zap className="w-4 h-4 fill-current" /> Learner Profile Sync: {dnaData ? 'Optimized' : 'Calibrating'}
-          </Text>
           <Heading as="h1" className="text-text-primary">
-            Hello, <span className="text-gradient">Alex</span>
+            Hello, <span className="text-gradient">{userName || 'Learner'}</span>
           </Heading>
           <Text className="mt-2 max-w-xl text-lg opacity-80 text-text-secondary">
             {dnaData && <span className="text-brand-purple font-semibold mr-2">DNA Analysis Active:</span>}
             {greetingSub}
           </Text>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap xl:justify-end gap-3 xl:max-w-[620px]">
           <Button variant="secondary" className="gap-2 shrink-0 border-gray-200" onClick={() => onNavigate?.('courses')}>
             <BookOpen className="w-4 h-4" />
             Continue Learning
@@ -159,19 +149,19 @@ export const DashboardOverview = ({
         <StatsCard 
           title="Cognitive Accuracy" 
           value={`${accuracy}%`} 
-          trend={+5.2} 
+          trend={0} 
           icon={TrendingUp} 
         />
         <StatsCard 
           title="Assessment Score" 
-          value={dnaData ? `${dnaData.score}/10` : "7/10"} 
+          value={dnaData ? `${dnaData.score}/5` : "Not available"} 
           trend={0} 
           icon={Target} 
         />
         <StatsCard 
           title="Daily Streak" 
-          value="12 Days" 
-          trend={1} 
+          value="--" 
+          trend={0} 
           icon={Flame} 
         />
         <StatsCard 
@@ -224,13 +214,19 @@ export const DashboardOverview = ({
           <div className="flex items-center justify-between mb-8">
             <div>
               <Heading as="h3">Current Learning <span className="text-gradient">Path</span></Heading>
-              <Text className="text-sm">Pathway: Neural Architecture Specialist</Text>
+              <Text className="text-sm">
+                Pathway: {roadmapModules.length ? 'Personalized roadmap active' : 'Generate your first roadmap'}
+              </Text>
             </div>
-            <Button variant="ghost" size="sm" className="text-brand-pink font-bold">View All</Button>
+            {roadmapModules.length > 0 && (
+              <Button variant="ghost" size="sm" className="text-brand-pink font-bold" onClick={() => onNavigate?.('roadmap')}>
+                View All
+              </Button>
+            )}
           </div>
 
           <div className="space-y-3 flex-1">
-            {currentModules.map((module) => (
+            {roadmapModules.map((module) => (
               <div 
                 key={module.id} 
                 className="bg-gray-50 border border-border-light p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 group transition-all hover:bg-white hover:shadow-lg hover:outline-brand-pink/10 outline outline-transparent"
@@ -271,19 +267,11 @@ export const DashboardOverview = ({
               </div>
             ))}
           </div>
-
-          <div className="mt-6 p-6 rounded-3xl bg-gradient-premium relative overflow-hidden group shadow-xl shadow-brand-pink/10">
-             <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-125 transition-transform pointer-events-none">
-                <Target className="w-32 h-32" />
-             </div>
-             <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-                <div className="space-y-1 text-center md:text-left">
-                   <Heading as="h4" className="text-white">Unlock Intelligence v2.0</Heading>
-                   <Text className="text-white/80 text-sm">Complete the next module to verify your neural mapping profile.</Text>
-                </div>
-                <Button variant="secondary" className="bg-white text-text-primary font-bold hover:scale-105 px-8">Verify Signature</Button>
-             </div>
-          </div>
+          {!dnaData && (
+            <div className="p-4 rounded-xl border border-dashed border-border-light text-sm text-text-secondary">
+              No learning modules yet. Complete DNA assessment and generate a roadmap.
+            </div>
+          )}
         </Card>
       </motion.div>
 
@@ -307,10 +295,15 @@ export const DashboardOverview = ({
                   <Heading as="h4" className="text-sm group-hover:text-brand-purple transition-colors text-text-primary">{rec.title}</Heading>
                 </div>
              ))}
+             {!recommendations.length && (
+               <div className="md:col-span-2 p-4 rounded-2xl border border-dashed border-border-light text-sm text-text-secondary">
+                 Complete DNA assessment to unlock AI recommendations.
+               </div>
+             )}
           </div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-brand-purple/5 to-white border-brand-purple/10 flex flex-col items-center justify-center text-center p-8 space-y-6 shadow-md">
+        <Card className="bg-linear-to-br from-brand-purple/5 to-white border-brand-purple/10 flex flex-col items-center justify-center text-center p-8 space-y-6 shadow-md">
            <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center border border-brand-purple/10 shadow-sm">
               <Sparkles className="w-8 h-8 text-brand-purple" />
            </div>
