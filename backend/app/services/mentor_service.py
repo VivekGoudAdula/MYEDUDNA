@@ -192,7 +192,7 @@ async def send_mentorship_request(payload: dict, user_email: str) -> dict:
                     </div>
                 </div>
                 <div class="footer">
-                    &copy; 2026 EduDNA Hope Works Foundation. All rights reserved. <br>
+                    &copy; 2026 MyEduDNA. All rights reserved. <br>
                     You are receiving this because you are a registered mentor on our neural network.
                 </div>
             </div>

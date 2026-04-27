@@ -86,5 +86,5 @@ This project is licensed under the Apache-2.0 License.
 
 ---
 <div align="center">
-  Built with ❤️ for the <b>Witch Hunt Hackathon</b> by Hope Works Foundation
+  Built with ❤️ by <b>Vivek Goud Adula</b>
 </div>
