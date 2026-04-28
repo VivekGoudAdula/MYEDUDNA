@@ -1,9 +1,5 @@
 # 🧬 MyEduDNA: AI-Powered Personalized Learning Path
 
-![MyEduDNA Banner](https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6)
-
-![App Screenshot](frontend/public/image.png)
-
 MyEduDNA is a revolutionary learning platform that uses AI to analyze a student's "Educational DNA"—their unique learning style, strengths, and weaknesses—to provide highly personalized career roadmaps, interactive courses, and expert mentorship.
 
 ## 🚀 Key Features
